@@ -39,6 +39,8 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-013 | Research: check the IdentityApi design draft (`~/Downloads/Garbati_IdentityApi_Design.md`) against JWT/JOSE, OAuth2 local-verification and mandate-revocation standards, to inform D-9 | researcher | | done — token design matches RFC 8725/9068/7009 + OWASP closely; `research/identityapi-design-review.md` |
 | T-014 | Research: dual-control/maker-checker/k-of-N approval patterns (treasury, multisig) for GARBATI's new joint-account requirement, to inform D-9 | researcher | | done — simple unweighted M-of-N is standard; flags initiator-counts-as-approver and reconfiguration-consent as real open points; `research/joint-account-approval-patterns.md` |
 | T-015 | Design reversal authority for IdentityApi: who may initiate a reversal, required reason codes/approvals, and reconciliation when a ledger reversal can't undo an external effect (deferred from D-9, owner's choice, 16 Oct 2026) | coordinator + you | | todo |
+| T-016 | IdentityApi foundation: project skeleton, Customer, KYC. See `tasks/T-016-identityapi-foundation.md`. First of two build tasks — Mandates/joint-accounts/grant-signing deliberately excluded | builder | T-006 | doing — branch `feat/foundation` |
+| T-017 | IdentityApi mandates + authorization grant issuance (single-holder), builds on T-016 | builder | T-016 | todo |
 
 ## C. Your own open items (not for agents)
 
