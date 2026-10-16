@@ -15,6 +15,23 @@ One entry per merged feature. You should be able to answer these in an interview
 
 ## Entries
 
+### 2026-10-16: Fee-income and tax-payable system accounts (LedgerApi, PR #28)
+**In plain words:** The chain feature (decision #45, above) can post a Fee or Tax leg, but until now it could credit *any* system account — there was no dedicated place for fee income or tax owed to actually land. This change creates exactly those accounts: one Fee Income account and one Tax Payable account per currency (40 accounts total for the 20 currencies GARBATI supports), the same way the existing "funding" accounts were created for deposits and withdrawals. It also adds a safety check: the app refuses to start if any supported currency is missing one of these accounts in configuration. Importantly, nothing *uses* these accounts yet — a chain's fee leg still doesn't know they exist. This PR only builds the destination; routing real fees and tax to it is later work for the orchestrator/ProductApi.
+
+**Five interview questions:**
+1. Q: If a 21st currency gets added later but someone forgets to configure its fee-income account, what happens?
+   A: The application won't start at all. A startup check runs through every supported currency and fails immediately, by name, if any currency's fee-income or tax-payable account isn't configured — so the gap is caught before the app is live, not discovered later when a fee needs to post.
+2. Q: Does a chain's Fee leg have to credit this new Fee Income account specifically?
+   A: Not yet. The chain-posting rule from decision #45 only checks "is this a System account," not "is this the *right* System account." These new accounts exist and are configured, but nothing currently points a transaction at them — that's deliberately left for whichever future service (the orchestrator, using ProductApi's rules) actually decides where a fee should go.
+3. Q: Why two separate account number ranges (`200000001` for fee income, `300000001` for tax payable) instead of one shared range?
+   A: So they can never collide with each other, with the existing funding accounts (`100000001`), or with any customer account, and so each type is instantly recognizable just from its number.
+4. Q: Why one migration this time, when the original funding accounts were seeded across two separate migrations?
+   A: The funding accounts needed two migrations only because the list of supported currencies itself grew over time — four currencies at first, sixteen more added later. That currency list is already finished at 20, so there was no reason to split this into installments.
+5. Q: Is there any money-safety risk in this change?
+   A: No — these are brand-new accounts with no balance, and nothing posts to them yet. The actual money-safety rules (balance checks, locking, reversal) all live in the chain-posting code from decision #45, which this PR deliberately did not touch.
+
+**One thing that nearly went wrong:** It would have been easy for the builder to "helpfully" wire these new accounts straight into the chain-posting logic while already in that part of the codebase. The task explicitly forbade this (that routing decision belongs to a future service, not to LedgerApi), and QA specifically checked for it — confirming via a direct code diff that the chain-related files were untouched, and that the new configuration classes aren't read anywhere outside their own tests. Scope discipline, not cleverness, was the thing being tested here.
+
 ### 2026-10-16: Chains of legs (LedgerApi, PR #26 + #27)
 **In plain words:** Before this, every money movement in the ledger was exactly one debit and one credit — a transfer. But a real transfer often needs to also take a fee, and tax on that fee, as part of the *same* all-or-nothing operation: either the transfer, the fee, and the tax all happen, or none of them do. A "chain" is just an ordered list of up to 10 of these two-entry movements (called "legs") that the ledger posts together inside one database transaction. A plain transfer is just a chain with one leg, so nothing that existed before had to change.
 
