@@ -27,7 +27,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-001 | LedgerApi: chains of legs (decision #45). See `tasks/T-001-ledger-chains.md` | builder | T-000, D-7 | done — built/merged as LedgerApi PR #26/#27 ahead of this board; QA-approved and owner-ratified 16 Oct 2026 |
 | T-002 | QA review of T-001 PR | qa | T-001 | done — Approve, no blockers; `qa/reports/T-001.md` |
 | T-003 | Update `ARCHITECTURE.md` decisions statuses after D-2 | coordinator | D-2 | done — P-1 to P-6 and P-13 marked Decided; ScheduleApi retry-on-failure flagged as a new open question for when ScheduleApi is designed |
-| T-004 | LedgerApi: fee-income and tax-payable system accounts per currency (decision #46) | builder | T-001 | todo |
+| T-004 | LedgerApi: fee-income and tax-payable system accounts per currency (decision #46). See `tasks/T-004-ledger-fee-tax-accounts.md` | builder | T-001 | doing — branch `feat/fee-tax-accounts` |
 | T-005 | LedgerApi: decision-token verification (decision #47) | builder | T-001, D-6 | blocked |
 | T-006 | Identity design v2 (apply D-9) and new `Garbati.IdentityApi/docs/DESIGN.md` | coordinator + you | D-9 | todo |
 | T-007 | Research: Sharia-compliant microfinance product rules (what is prohibited, how fees and late charges are treated). Output `research/sharia-product-rules.md`; needs scholar confirmation | researcher | | done — brief written; flags a sourcing disagreement on late-fee/ta'widh handling; **still needs a qualified scholar's sign-off before any rule is built on it** |
