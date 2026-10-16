@@ -117,10 +117,10 @@ Garbati.OrchestratorApi/ docs/DESIGN.md
 - **Stale window.** A suspension or revocation within the 30 seconds does not cancel a token already issued, and the ledger cannot see it. This is the accepted in-flight window (Identity design 3.4), bounded by the expiry. IdentityApi marks expired grants as expired for audit; nothing needs revoking.
 - **What the token cannot cover.** Fee and tax entries are added by the orchestrator from ProductApi's rules; the token covers only the customer's own request. A reconciliation job should compare posted fees with ProductApi's rules.
 - **Orchestrator crash mid-operation.** A limit reservation was made but the ledger post never happened. Define reservation expiry and a reconciliation job that checks the ledger by idempotency key.
-- **Does a reversal restore the limit allowance?** Recommended: yes, and record it.
-- **Leg purpose codes.** Section 12 starts with `Principal`, `Fee` and `Tax`. Will later products need more (for example `Charity` for late fees under Sharia rules)? Adding a code is a code change in the ledger, so list them before building.
-- **Reversing when the recipient already spent the money.** Reversing the principal debits the recipient. If they no longer have the funds, that leg fails and, by the all-or-nothing rule, the whole chain reversal fails, so the fee and tax are not refunded either. Confirm this is wanted, or define a manual remediation path.
-- **Maximum legs per chain.** Section 12 proposes 10. Is that enough for any product you foresee (for example split fees to several income accounts)?
+- **Does a reversal restore the limit allowance?** **Decided (owner, D-7, 16 Oct 2026): yes.** This still needs to be wired up when the limit-reservation mechanism (P-8) is actually built — nothing to restore yet, since limits aren't implemented.
+- **Leg purpose codes.** **Decided (owner, D-7, 16 Oct 2026): `Principal`, `Fee`, `Tax` only, as built in decision #45.** A later code (e.g. `Charity` for Sharia late fees, pending T-007's research) is a new decision and a ledger code change, not an automatic extension.
+- **Reversing when the recipient already spent the money.** **Decided (owner, D-7, 16 Oct 2026): the whole chain reversal fails; no manual remediation path defined yet.** Built and tested in decision #45 (`ChainReversal_WhenOneLegCannotBeReversed_RollsBackTheWholeReversal`).
+- **Maximum legs per chain.** **Decided (owner, D-7, 16 Oct 2026): 10,** as built in decision #45.
 - **Sharia rules.** Which product rules (profit-sharing instead of interest, late-fee-to-charity, no prohibited charges) are enforced by ProductApi and which by the later financing services?
 - **Product version migration.** Moving accounts to a new version may need customer notice, especially for fee increases. Compliance must confirm the notice period.
 
@@ -139,7 +139,7 @@ Garbati.OrchestratorApi/ docs/DESIGN.md
 
 1. **Request hash and per-client idempotency** (from the external review): **Done**, LedgerApi decisions #42 and #44 (merged 6 and 15 October 2026).
 2. **Idempotency on `POST /api/accounts`** (P-13): **Done**, LedgerApi decision #43 (merged 14 October 2026). Keys are 1-128 characters of letters, digits, `-`, `_`, `.`, `:` (decision #44).
-3. **Chains of legs** (P-9, P-10, P-14): a new chain endpoint posts an ordered list of legs in one database transaction. Every leg is still an ordinary two-entry transaction, so the "exactly one debit and one credit" rule is **not** amended. `TransferService` is split into a core that posts one leg inside a database transaction owned by the caller, and the existing wrapper. `ReversalService` keeps its single-leg logic and gains a chain reversal that loops over the legs. Proposed as LedgerApi decision #45. Detail in Section 12.
+3. **Chains of legs** (P-9, P-10, P-14): a new chain endpoint posts an ordered list of legs in one database transaction. Every leg is still an ordinary two-entry transaction, so the "exactly one debit and one credit" rule is **not** amended. `TransferService` is split into a core that posts one leg inside a database transaction owned by the caller, and the existing wrapper. `ReversalService` keeps its single-leg logic and gains a chain reversal that loops over the legs. **Done**, LedgerApi decision #45 (built on `feat/ledger-chains`, merged as LedgerApi PR #26 on 15 Oct 2026 and PR #27 on 15 Oct 2026, ahead of this task board's QA step; independently QA-reviewed and approved 16 Oct 2026, `qa/reports/T-001.md`; owner-ratified 16 Oct 2026). Detail in Section 12.
 4. **Fee-income and tax-payable system accounts per currency**, seeded like the funding accounts (decision #25). Proposed as decision #46.
 5. **Token verification** (P-12): the ledger verifies an IdentityApi-signed decision token locally before posting a customer-originated transaction, and stores the `decisionId` under a unique constraint. This amends decision #34 narrowly: the ledger still calls nobody and stores nothing about identity. Proposed as decision #47.
 
@@ -163,10 +163,10 @@ Each leg is posted inside **one** database transaction that the chain owns. If a
 
 ### 12.3 Data shape
 
-- New table `transaction_chains`: id, public reference, `initiated_by`, `idempotency_key`, `request_hash`, `status` (Pending, Success, Failed), `failure_reason`, `failed_sequence`, `decision_id` (unique, from the token, P-12), `reverses_chain_id` (unique, null unless this chain is a reversal), `created_at`, `completed_at`.
+- New table `transaction_chains`: id, public reference, `initiated_by`, `idempotency_key`, `request_hash`, `status` (Pending, Success, Failed), `failure_reason`, `failed_sequence`, `reverses_chain_id` (unique, null unless this chain is a reversal), `created_at`, `completed_at`. `decision_id` (unique, from the token, P-12) is **deferred to decision #47** (token verification), not part of #45 — #45 shipped without it (D-6, token timing, is still open on the board; #45 simply does not need it yet).
 - Unique index on (`initiated_by`, `idempotency_key`) with `NULLS NOT DISTINCT`, the same rule as transactions (decision #42).
 - `transactions` gets three nullable columns: `chain_id`, `sequence`, `purpose`. Unique on (`chain_id`, `sequence`). Rows from before this change stay null and behave as today.
-- `purpose` is a fixed list: `Principal`, `Fee`, `Tax` (see the open question on more codes).
+- `purpose` is a fixed list: `Principal`, `Fee`, `Tax` (confirmed by the owner, D-7, 16 Oct 2026).
 - A leg's own idempotency key is generated by the ledger as `chain:{chainId}:{sequence}`, so it can never collide with a client's key. The single-transfer, deposit and withdrawal endpoints reject client keys that start with `chain:`.
 
 ### 12.4 Rules the ledger enforces on every chain

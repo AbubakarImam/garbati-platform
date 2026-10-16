@@ -46,3 +46,52 @@ Implement **LedgerApi decision #45: chains of legs**. Branch + PR as usual; add 
 - Migration leaves old rows valid and existing tests pass unchanged.
 
 Run build and tests; report anything unverified or ambiguous.
+
+---
+
+## Builder report (2026-10-16)
+
+**Finding: this task is already built on LedgerApi `main`.** Before writing any code I checked out
+`feat/ledger-chains` from current `main` (as instructed) and found decision #45 fully implemented there
+already — merged via LedgerApi PR #26 (`feature/transaction-chains`) and PR #27 (`fix/chain-error-titles`),
+on top of PR #24/#25 (account-creation and transfer idempotency fixes). None of that went through this
+board: `TASKS.md` still shows T-001 as `ready`, there is no file under `qa/reports/`, and `LEARNING_LOG.md`
+has no entry for it.
+
+Per AGENTS.md ("do only that task… if unclear, stop… do not guess") I stopped and asked the owner how to
+proceed rather than silently redoing or silently claiming the work. Chosen option: **audit the existing
+code against this spec**, fix any real gaps on this branch, change nothing if there are none.
+
+**Audit result: no gaps found.** Checked every item in this file against the code on `main`:
+- Data: `transaction_chains` table and `transactions.chain_id/sequence/purpose` match the spec exactly,
+  including `NULLS NOT DISTINCT` on `(initiated_by, idempotency_key)`, the unique `(chain_id, sequence)`,
+  the `chain_leg`/`purpose` check constraints, and the `reverses_chain_id` unique FK. Migration
+  `20261015181705_AddTransactionChains`; a probe `dotnet ef migrations add` produced an empty Up/Down (no
+  model drift), then was deleted.
+- `chain:` prefix is centrally rejected in `IdempotencyKeyRule` and wired into all five validators
+  (transfer, deposit, withdrawal, create-account, chain).
+- Endpoints, scopes, status codes (`ChainsController`) match; existing `TransactionResponse` gained
+  `chainReference`/`sequence`/`purpose`.
+- Posting rules: `TransferService` and `ChainService` both delegate to the shared `LegPoster.PostLegAsync`
+  (the refactor the spec asked for); single reversal and chain reversal both delegate to `LegReverser`.
+  Ascending ordinal account-number lock order is used in both the posting and reversal paths, with a test
+  (`OppositeDirectionChainsInParallel_OverTheSameAccounts_DoNotDeadlock`).
+- Request hash: SHA-256 of `[debit, credit, amount G29, purpose]` per leg, narration excluded, matching
+  decision #44's precedent.
+- Failure/audit/reversal/old-endpoint-422 behaviour all present and each has a dedicated test; the full
+  checklist in this file's **Tests** section has a matching test in `ChainServiceTests.cs`,
+  `ChainApiTests.cs`, `ChainRequestValidatorTests.cs` or `ChainMigrationTests.cs`.
+- `docs/DESIGN.md` already has decision #45 written up in the same style as the rest of the log.
+
+**Verified:** full solution build (`dotnet build`) is clean (0 errors; 2 pre-existing nullable warnings in
+`AccountServiceTests.cs`, unrelated to chains). The 94 tests that do not need Postgres (`Validation` and
+`Controllers`) pass.
+
+**Could not verify:** this sandbox has no Docker, so the Postgres-backed suites
+(`ChainServiceTests`, `ChainApiTests`, `ChainMigrationTests`, and the rest of `Services`/`Configuration`)
+could not be executed here. Someone with Docker needs to run `dotnet test` before this is signed off.
+
+**Nothing changed in the LedgerApi working tree** — there was nothing to fix. No PR opened. Owner's call on
+next steps: mark T-001 `done` once `dotnet test` is confirmed green with Docker, open T-002 (QA review) to
+check the behaviour claims above against the actual code rather than taking this report on faith, and
+reconcile the branch-name/process mismatch (work landed via ad hoc branches instead of a tracked task).

@@ -12,7 +12,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | D-4 | Contracts as OpenAPI files in `contracts/`; builders may not change them | Yes | |
 | D-5 | Only the coordinator assigns decision numbers (next free: #48 after #45 to #47 are reserved) | Yes | |
 | D-6 | Token (P-12): ship demo without it first, leave a marked seam (#47 later)? | Without it first | |
-| D-7 | Section 9 open questions: leg purpose codes, max legs (10?), reversal when recipient spent funds, does a reversal restore the limit allowance | Principal/Fee/Tax; 10; whole reversal fails; yes | |
+| D-7 | Section 9 open questions: leg purpose codes, max legs (10?), reversal when recipient spent funds, does a reversal restore the limit allowance | Principal/Fee/Tax; 10; whole reversal fails; yes | Ratified as built, 16 Oct 2026 |
 | D-8 | Shared code between services (idempotency, audit, error shape) | Copy now, extract a package later | |
 | D-9 | Identity design v2 changes (decisions table, token endpoint, scope split, Closed/Deceased cascade, freeze ownership, one active mandate index) | Apply the list from the review | |
 | D-10 | Hosting for new services (P-6) | Orchestrator + Product in one deployable at first | |
@@ -23,15 +23,15 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 
 | ID | Task | Owner agent | Depends on | Status |
 |---|---|---|---|---|
-| T-000 | Create `garbati-platform` repo from this folder; push to GitHub; add `templates/ci-dotnet.yml` to LedgerApi as `.github/workflows/ci.yml`; turn on branch protection and required checks | You | | todo |
-| T-001 | LedgerApi: chains of legs (decision #45). See `tasks/T-001-ledger-chains.md` | builder | T-000, D-7 | ready |
-| T-002 | QA review of T-001 PR | qa | T-001 | todo |
+| T-000 | Create `garbati-platform` repo from this folder; push to GitHub; add `templates/ci-dotnet.yml` to LedgerApi as `.github/workflows/ci.yml`; turn on branch protection and required checks | You | | done — repo created/pushed; LedgerApi CI predates this board (PR #18); branch protection on for both repos 16 Oct 2026 (LedgerApi requires `test`+`docker` checks; garbati-platform has no CI yet, so force-push/deletion protection only) |
+| T-001 | LedgerApi: chains of legs (decision #45). See `tasks/T-001-ledger-chains.md` | builder | T-000, D-7 | done — built/merged as LedgerApi PR #26/#27 ahead of this board; QA-approved and owner-ratified 16 Oct 2026 |
+| T-002 | QA review of T-001 PR | qa | T-001 | done — Approve, no blockers; `qa/reports/T-001.md` |
 | T-003 | Update `ARCHITECTURE.md` decisions statuses after D-2 | coordinator | D-2 | todo |
 | T-004 | LedgerApi: fee-income and tax-payable system accounts per currency (decision #46) | builder | T-001 | todo |
 | T-005 | LedgerApi: decision-token verification (decision #47) | builder | T-001, D-6 | blocked |
 | T-006 | Identity design v2 (apply D-9) and new `Garbati.IdentityApi/docs/DESIGN.md` | coordinator + you | D-9 | todo |
-| T-007 | Research: Sharia-compliant microfinance product rules (what is prohibited, how fees and late charges are treated). Output `research/sharia-product-rules.md`; needs scholar confirmation | researcher | | ready |
-| T-008 | Research: Nigerian regulatory requirements relevant to a microfinance core system (CBN rules, tiered KYC, record keeping) | researcher | | ready |
+| T-007 | Research: Sharia-compliant microfinance product rules (what is prohibited, how fees and late charges are treated). Output `research/sharia-product-rules.md`; needs scholar confirmation | researcher | | done — brief written; flags a sourcing disagreement on late-fee/ta'widh handling; **still needs a qualified scholar's sign-off before any rule is built on it** |
+| T-008 | Research: Nigerian regulatory requirements relevant to a microfinance core system (CBN rules, tiered KYC, record keeping) | researcher | | done — brief written; 2 of several CBN documents read in full, others blocked (403)/image-only and rely on secondary sources; 7 items flagged **needing compliance-officer confirmation** |
 | T-009 | Product questions-only design skeleton (first Sharia review point) | coordinator + you | T-007 | todo |
 | T-010 | Orchestrator minimal design (Identity + Ledger only) | coordinator + you | T-006 | todo |
 
