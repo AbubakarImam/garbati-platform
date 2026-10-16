@@ -37,7 +37,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-010 | Orchestrator minimal design (Identity + Ledger only) | coordinator + you | T-006 | todo |
 | T-011 | Research: industry-standard patterns behind P-1 to P-6 (Saga orchestration, database-per-service, modular-monolith-first), to inform D-2 | researcher | | done — all six match named patterns; `research/architecture-patterns-p1-p6.md` |
 | T-013 | Research: check the IdentityApi design draft (`~/Downloads/Garbati_IdentityApi_Design.md`) against JWT/JOSE, OAuth2 local-verification and mandate-revocation standards, to inform D-9 | researcher | | done — token design matches RFC 8725/9068/7009 + OWASP closely; `research/identityapi-design-review.md` |
-| T-014 | Research: dual-control/maker-checker/k-of-N approval patterns (treasury, multisig) for GARBATI's new joint-account requirement, to inform D-9 | researcher | | doing |
+| T-014 | Research: dual-control/maker-checker/k-of-N approval patterns (treasury, multisig) for GARBATI's new joint-account requirement, to inform D-9 | researcher | | done — simple unweighted M-of-N is standard; flags initiator-counts-as-approver and reconfiguration-consent as real open points; `research/joint-account-approval-patterns.md` |
 | T-015 | Design reversal authority for IdentityApi: who may initiate a reversal, required reason codes/approvals, and reconciliation when a ledger reversal can't undo an external effect (deferred from D-9, owner's choice, 16 Oct 2026) | coordinator + you | | todo |
 
 ## C. Your own open items (not for agents)
