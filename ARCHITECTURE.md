@@ -21,7 +21,7 @@ GARBATI is an open-source core banking platform for Sharia-compliant microfinanc
 | Service | Owns (source of truth) | Does NOT own | Status |
 |---|---|---|---|
 | **LedgerApi** | Accounts, entries, balances, idempotency, ledger audit | Customers, products, fees, limits | Built, deployed |
-| **IdentityApi** (Garbati.IdentityApi) | Customer identity, KYC status and tier, mandates (who may operate which account), suspension | Product rules, fees, tax, standing orders, transaction flow | Design v1 in review |
+| **IdentityApi** (Garbati.IdentityApi) | Customer identity, KYC status and tier, mandates (who may operate which account, including joint accounts with configurable multi-holder approval), suspension | Product rules, fees, tax, standing orders, transaction flow | Design v2 ratified ([`Garbati.IdentityApi/docs/DESIGN.md`](https://github.com/AbubakarImam/Garbati.IdentityApi/blob/main/docs/DESIGN.md)); not yet built |
 | **ProductApi** (Product & Pricing) | Product catalog, account-to-product binding, product rules (minimum balance, allowed operations), fee and tax rules, limit definitions. Sharia product rules live here | Executing anything; storing money; customer identity | Not started |
 | **OrchestratorApi** (Transaction Orchestrator) | The ordered steps of each customer operation; decision binding (`decisionId`); in-flight operation state; account-opening flow | Any truth of its own about customers, products or balances | Not started |
 | **ScheduleApi** (Standing Orders) | Recurring instructions and their run history | Moving money (it submits requests to the orchestrator like any channel) | Later tranche |
@@ -82,7 +82,7 @@ Garbati.OrchestratorApi/ docs/DESIGN.md
 ## 7. Build order (Proposed)
 
 1. LedgerApi (done)
-2. IdentityApi: finish design v2, then build
+2. IdentityApi: design v2 ratified; next is building it
 3. ProductApi: design first (the first Sharia-board review point is here)
 4. OrchestratorApi: design after Identity and Product contracts exist; build a minimal version (Identity + Ledger only) first, add Product later
 5. ScheduleApi, Financing, Channel
