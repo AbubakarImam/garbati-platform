@@ -14,7 +14,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | D-6 | Token (P-12): ship demo without it first, leave a marked seam (#47 later)? | Without it first | |
 | D-7 | Section 9 open questions: leg purpose codes, max legs (10?), reversal when recipient spent funds, does a reversal restore the limit allowance | Principal/Fee/Tax; 10; whole reversal fails; yes | Ratified as built, 16 Oct 2026 |
 | D-8 | Shared code between services (idempotency, audit, error shape) | Copy now, extract a package later | |
-| D-9 | Identity design v2 changes (decisions table, token endpoint, scope split, Closed/Deceased cascade, freeze ownership, one active mandate index) | Apply the list from the review | |
+| D-9 | Identity design v2 changes (decisions table, token endpoint, scope split, Closed/Deceased cascade, freeze ownership, one active mandate index) | Apply the list from the review | Review located (`~/Downloads/Garbati_IdentityApi_Design.md`, 489 lines); T-013 checks it against industry standards; owner still needs to resolve 3 real gaps + ~11 "Proposed" (not yet Confirmed) sub-decisions inside it — see coordinator's note in chat, 16 Oct 2026 |
 | D-10 | Hosting for new services (P-6) | Orchestrator + Product in one deployable at first | |
 | D-11 | Human-only gates (AGENTS.md) are the right list | Yes | |
 | D-12 | Quiz-before-merge rule: you answer QA's five questions before merging | Yes | |
@@ -36,6 +36,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-009 | Product questions-only design skeleton (first Sharia review point) | coordinator + you | T-007 | todo |
 | T-010 | Orchestrator minimal design (Identity + Ledger only) | coordinator + you | T-006 | todo |
 | T-011 | Research: industry-standard patterns behind P-1 to P-6 (Saga orchestration, database-per-service, modular-monolith-first), to inform D-2 | researcher | | done — all six match named patterns; `research/architecture-patterns-p1-p6.md` |
+| T-013 | Research: check the IdentityApi design draft (`~/Downloads/Garbati_IdentityApi_Design.md`) against JWT/JOSE, OAuth2 local-verification and mandate-revocation standards, to inform D-9 | researcher | | doing |
 
 ## C. Your own open items (not for agents)
 
