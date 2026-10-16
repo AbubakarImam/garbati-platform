@@ -7,7 +7,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | ID | Decision | Recommendation | Your answer |
 |---|---|---|---|
 | D-1 | **Demo slice for recruiters.** What must work end to end in Swagger on Azure? | Open account, fund, transfer with fee, reverse. Ledger (with chains) + minimal Orchestrator + minimal Identity. Product, Schedule, Financing, Channel come later. | |
-| D-2 | Confirm P-1 to P-6 as Decided (or change them). P-13 is built (LedgerApi #43): mark Decided. | Confirm all | |
+| D-2 | Confirm P-1 to P-6 as Decided (or change them). P-13 is built (LedgerApi #43): mark Decided. | Confirm all | Confirmed, 16 Oct 2026, after T-011 research check against industry patterns (`research/architecture-patterns-p1-p6.md`) |
 | D-3 | Repositories | Keep `LedgerApi`; add `garbati-platform` (this repo); one repo per new service | |
 | D-4 | Contracts as OpenAPI files in `contracts/`; builders may not change them | Yes | |
 | D-5 | Only the coordinator assigns decision numbers (next free: #48 after #45 to #47 are reserved) | Yes | |
@@ -26,7 +26,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-000 | Create `garbati-platform` repo from this folder; push to GitHub; add `templates/ci-dotnet.yml` to LedgerApi as `.github/workflows/ci.yml`; turn on branch protection and required checks | You | | done — repo created/pushed; LedgerApi CI predates this board (PR #18); branch protection on for both repos 16 Oct 2026 (LedgerApi requires `test`+`docker` checks; garbati-platform has no CI yet, so force-push/deletion protection only) |
 | T-001 | LedgerApi: chains of legs (decision #45). See `tasks/T-001-ledger-chains.md` | builder | T-000, D-7 | done — built/merged as LedgerApi PR #26/#27 ahead of this board; QA-approved and owner-ratified 16 Oct 2026 |
 | T-002 | QA review of T-001 PR | qa | T-001 | done — Approve, no blockers; `qa/reports/T-001.md` |
-| T-003 | Update `ARCHITECTURE.md` decisions statuses after D-2 | coordinator | D-2 | todo |
+| T-003 | Update `ARCHITECTURE.md` decisions statuses after D-2 | coordinator | D-2 | done — P-1 to P-6 and P-13 marked Decided; ScheduleApi retry-on-failure flagged as a new open question for when ScheduleApi is designed |
 | T-004 | LedgerApi: fee-income and tax-payable system accounts per currency (decision #46) | builder | T-001 | todo |
 | T-005 | LedgerApi: decision-token verification (decision #47) | builder | T-001, D-6 | blocked |
 | T-006 | Identity design v2 (apply D-9) and new `Garbati.IdentityApi/docs/DESIGN.md` | coordinator + you | D-9 | todo |
@@ -34,6 +34,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-008 | Research: Nigerian regulatory requirements relevant to a microfinance core system (CBN rules, tiered KYC, record keeping) | researcher | | done — brief written; 2 of several CBN documents read in full, others blocked (403)/image-only and rely on secondary sources; 7 items flagged **needing compliance-officer confirmation** |
 | T-009 | Product questions-only design skeleton (first Sharia review point) | coordinator + you | T-007 | todo |
 | T-010 | Orchestrator minimal design (Identity + Ledger only) | coordinator + you | T-006 | todo |
+| T-011 | Research: industry-standard patterns behind P-1 to P-6 (Saga orchestration, database-per-service, modular-monolith-first), to inform D-2 | researcher | | done — all six match named patterns; `research/architecture-patterns-p1-p6.md` |
 
 ## C. Your own open items (not for agents)
 
