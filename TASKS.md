@@ -40,7 +40,7 @@ Status: `todo` / `ready` / `doing` / `review` / `done` / `blocked`. Only the coo
 | T-014 | Research: dual-control/maker-checker/k-of-N approval patterns (treasury, multisig) for GARBATI's new joint-account requirement, to inform D-9 | researcher | | done — simple unweighted M-of-N is standard; flags initiator-counts-as-approver and reconfiguration-consent as real open points; `research/joint-account-approval-patterns.md` |
 | T-015 | Design reversal authority for IdentityApi: who may initiate a reversal, required reason codes/approvals, and reconciliation when a ledger reversal can't undo an external effect (deferred from D-9, owner's choice, 16 Oct 2026) | coordinator + you | | todo |
 | T-016 | IdentityApi foundation: project skeleton, Customer, KYC. See `tasks/T-016-identityapi-foundation.md`. First of two build tasks — Mandates/joint-accounts/grant-signing deliberately excluded | builder | T-006 | done — merged PR #1, 16 Oct 2026; QA Approve x2 (`qa/reports/PR-1-identityapi.md`); also fixed a pre-existing decision-numbering bug in `docs/DESIGN.md`'s body prose while adding decision #29 (idempotency). `deploy` CI job fails on main as expected (Azure not wired up yet) — not a real failure, `test`+`docker` (the required checks) pass |
-| T-017 | IdentityApi mandates + authorization grant issuance (single-holder), builds on T-016 | builder | T-016 | todo |
+| T-017 | IdentityApi mandates + authorization grant issuance (single-holder), builds on T-016. See `tasks/T-017-identityapi-mandates-and-grants.md` | builder | T-016 | doing — branch `feat/mandates-and-grants`; new dependency (Microsoft.IdentityModel.JsonWebTokens/.Tokens) approved by owner |
 
 ## C. Your own open items (not for agents)
 
