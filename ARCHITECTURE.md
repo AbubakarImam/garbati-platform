@@ -27,9 +27,9 @@ GARBATI is an open-source core banking platform for Sharia-compliant microfinanc
 | **ScheduleApi** (Standing Orders) | Recurring instructions and their run history | Moving money (it submits requests to the orchestrator like any channel) | Later tranche |
 | **Financing services** (Murabaha, etc.) | Financing contracts and schedules | Ledger postings | Later tranche |
 | **Channel/Gateway** | Customer login, sessions, API for apps | Everything above | Later tranche |
-| **StaffIdentityApi** | Staff accounts, roles, who is logging in as a bank employee and what they're permitted to do | Customer identity/KYC/mandates (that's `IdentityApi`'s job — staff and customers are deliberately separate identity domains, D-13); any money/customer truth | Not started — design next (T-027) |
-| **OpsApi** (ops console backend-for-frontend) | The staff-facing login session (cookie-based); holds the real service API keys for `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` server-side, never exposed to the browser; proxies/aggregates calls for the ops console UI | Any truth of its own — same "orchestrates, doesn't own" role `OrchestratorApi` plays for customer-facing flows, but for staff-facing ones | Not started — design next (T-028), after StaffIdentityApi |
-| **Ops console** (React + TypeScript frontend) | Nothing — a pure client of OpsApi | Everything; never talks to `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` directly, never holds a real service credential | Not started — design next (T-029), after OpsApi |
+| **StaffIdentityApi** | Staff accounts, roles (Teller/CustomerServiceOfficer/Supervisor/ComplianceOfficer/RiskOfficer/Auditor/Administrator), who is logging in as a bank employee and what they're permitted to do | Customer identity/KYC/mandates (that's `IdentityApi`'s job — staff and customers are deliberately separate identity domains, D-13); any money/customer truth | Design v1 ratified (T-027); not yet built. [`docs/DESIGN.md`](https://github.com/AbubakarImam/Garbati.StaffIdentityApi/blob/main/docs/DESIGN.md) |
+| **OpsApi** (ops console backend-for-frontend) | The staff-facing login session (cookie-based); holds the real service API keys for `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` server-side, never exposed to the browser; proxies/aggregates calls for the ops console UI | Any truth of its own — same "orchestrates, doesn't own" role `OrchestratorApi` plays for customer-facing flows, but for staff-facing ones | Design v1 ratified (T-028); not yet built. [`docs/DESIGN.md`](https://github.com/AbubakarImam/Garbati.OpsApi/blob/main/docs/DESIGN.md) |
+| **Ops console** (React + TypeScript frontend) | Nothing — a pure client of OpsApi | Everything; never talks to `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` directly, never holds a real service credential | Design v1 ratified (T-029); not yet built, depends on OpsApi being built first. [`docs/DESIGN.md`](https://github.com/AbubakarImam/garbati-ops-console/blob/main/docs/DESIGN.md) |
 
 ## 3. Dependency rules
 
@@ -105,7 +105,7 @@ Garbati.OrchestratorApi/ docs/DESIGN.md
 3. ProductApi: design first (the first Sharia-board review point is here)
 4. OrchestratorApi: minimal design (Identity + Ledger only, no fee/reversal) ratified; next is building it. Product integration added once ProductApi exists.
 5. ScheduleApi, Financing, Channel
-6. Ops console initiative (D-13, staff-facing, independent of 1-5 above): StaffIdentityApi design next (T-027), then OpsApi/BFF design (T-028), then the frontend (T-029)
+6. Ops console initiative (D-13, staff-facing, independent of 1-5 above): all three designs ratified (T-027 StaffIdentityApi, T-028 OpsApi, T-029 frontend); next is building, in dependency order — StaffIdentityApi, then OpsApi, then the frontend
 
 **Deployment guidance:** design these as separate services, but you do not need separate deployments on day one. Each deployed service costs money and needs its own database, pipeline and monitoring. Start with Ledger and Identity deployed separately (their data sensitivity justifies it). Start Product and Orchestrator as separate projects inside one deployable, with the same boundaries enforced in code, and split them later if there is a reason.
 
