@@ -27,6 +27,9 @@ GARBATI is an open-source core banking platform for Sharia-compliant microfinanc
 | **ScheduleApi** (Standing Orders) | Recurring instructions and their run history | Moving money (it submits requests to the orchestrator like any channel) | Later tranche |
 | **Financing services** (Murabaha, etc.) | Financing contracts and schedules | Ledger postings | Later tranche |
 | **Channel/Gateway** | Customer login, sessions, API for apps | Everything above | Later tranche |
+| **StaffIdentityApi** | Staff accounts, roles, who is logging in as a bank employee and what they're permitted to do | Customer identity/KYC/mandates (that's `IdentityApi`'s job — staff and customers are deliberately separate identity domains, D-13); any money/customer truth | Not started — design next (T-027) |
+| **OpsApi** (ops console backend-for-frontend) | The staff-facing login session (cookie-based); holds the real service API keys for `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` server-side, never exposed to the browser; proxies/aggregates calls for the ops console UI | Any truth of its own — same "orchestrates, doesn't own" role `OrchestratorApi` plays for customer-facing flows, but for staff-facing ones | Not started — design next (T-028), after StaffIdentityApi |
+| **Ops console** (React + TypeScript frontend) | Nothing — a pure client of OpsApi | Everything; never talks to `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` directly, never holds a real service credential | Not started — design next (T-029), after OpsApi |
 
 ## 3. Dependency rules
 
@@ -45,6 +48,22 @@ Channels / ScheduleApi
 - IdentityApi and ProductApi never call each other. Anything needing both goes through the orchestrator.
 - LedgerApi calls nobody (LedgerApi decision #34 stays true). It checks a decision token locally, using IdentityApi's public key (P-12).
 - No service reads another service's database. No foreign keys across services.
+
+**3.1 Ops console (staff-facing, separate from the customer path above, D-13):**
+
+```
+Ops console (browser)
+        |
+        v
+      OpsApi  ----> StaffIdentityApi   (who is this staff member, what role?)
+        |     ----> IdentityApi        (customer/KYC/mandate lookups and actions)
+        |     ----> OrchestratorApi    (account opening, transfers, reversals)
+        |     ----> LedgerApi          (balance/transaction lookups)
+```
+
+- The browser only ever talks to `OpsApi`. It never holds a real `IdentityApi`/`OrchestratorApi`/`LedgerApi`/`StaffIdentityApi` credential — only an `HttpOnly`/`Secure`/`SameSite` session cookie `OpsApi` issues after checking the staff member's credentials against `StaffIdentityApi`.
+- `OpsApi` is the only thing that holds real service API keys for the other four services, and the only thing that knows a staff member's role — every privileged action (approving a reversal, editing an account) is authorized here, per request, not just at login.
+- `StaffIdentityApi` and `IdentityApi` never call each other — they are deliberately separate identity domains (workforce vs. customer, D-13). Anything needing both goes through `OpsApi`, the same "orchestrates, owns no truth" role `OrchestratorApi` plays on the customer path.
 
 ## 4. End-to-end flows
 
@@ -86,6 +105,7 @@ Garbati.OrchestratorApi/ docs/DESIGN.md
 3. ProductApi: design first (the first Sharia-board review point is here)
 4. OrchestratorApi: minimal design (Identity + Ledger only, no fee/reversal) ratified; next is building it. Product integration added once ProductApi exists.
 5. ScheduleApi, Financing, Channel
+6. Ops console initiative (D-13, staff-facing, independent of 1-5 above): StaffIdentityApi design next (T-027), then OpsApi/BFF design (T-028), then the frontend (T-029)
 
 **Deployment guidance:** design these as separate services, but you do not need separate deployments on day one. Each deployed service costs money and needs its own database, pipeline and monitoring. Start with Ledger and Identity deployed separately (their data sensitivity justifies it). Start Product and Orchestrator as separate projects inside one deployable, with the same boundaries enforced in code, and split them later if there is a reason.
 
@@ -107,6 +127,7 @@ Garbati.OrchestratorApi/ docs/DESIGN.md
 | P-12 | Decision binding | Shared signing key / Identity signs, ledger verifies a public key / ledger confirms online with Identity | IdentityApi signs a decision token with a private key. The orchestrator verifies it, then the ledger verifies it again locally with the public key. Expiry 30 seconds, single use | No call from the ledger to Identity, so no added latency and no new dependency. The orchestrator cannot forge a decision. IdentityApi stays the source of truth for authorization, LedgerApi for financial transactions | Decided (owner); stale-window cost in Section 9 |
 | P-13 | Create-account idempotency | None / client key with request hash | Idempotency key plus request hash on `POST /api/accounts` | A retried account-opening step must not create a second account | Decided (owner, D-2, 16 Oct 2026) — built, LedgerApi decision #43 (merged PR #24, 14 Oct 2026) |
 | P-14 | Shape of multi-part transactions | One transaction with many entries (A) / chain of ordinary two-entry legs committed together (B) | B: a chain of legs. Each leg is a normal two-entry transaction (principal, fee, tax). All legs commit in one database transaction or none do. A transaction with no fee or tax is a chain of one leg | Keeps the tested guarantee of one debit and one credit per transaction, keeps `POST /api/transfers` unchanged, and lets reversal reuse the existing single-leg logic. Statements show one line per leg | Decided (owner); details in Section 12 |
+| P-15 | Staff/ops identity vs. customer identity | Bounded context inside IdentityApi / new dedicated StaffIdentityApi | New dedicated service (StaffIdentityApi), built the low-cost way (P-6) — separate project/database, not necessarily a separate deployment day one | Workforce identity (staff, provisioned by an admin, least-privilege/audit) and customer identity (CIAM, self-registered, KYC-gated) are treated as distinct domains almost everywhere real core-banking platforms were checked; merging staff credentials into IdentityApi's database would share blast radius with regulated customer PII | Decided (owner, D-13, 19 Oct 2026, after T-026 research — `research/staff-ops-identity-patterns.md`) |
 
 ## 9. Open questions
 
