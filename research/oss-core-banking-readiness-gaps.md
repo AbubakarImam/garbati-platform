@@ -91,7 +91,7 @@ Each gap states: what's missing, why it matters *for this specific kind of proje
 | G7 | Secrets-management target pattern | **Yes** — new dependency | Real design task |
 | G8 | Combined docker-compose for all services | No | **Resolved, 22 Oct 2026 — see TASKS.md T-038.** `docker-compose.yml` added to `garbati-platform`; live end-to-end smoke test (account opening, funding, transfer, reversal, staff login, OpsApi cross-service lookups) run and confirmed working through the stack itself |
 | G9 | Ledger DB backup/DR runbook, tested | No (direction already chosen) | **Resolved, 22 Oct 2026 — see TASKS.md T-039.** A real PITR restore was run against production's actual backup chain (owner's go-ahead given first), verified with real data, then cleaned up; written up with measured RPO/RTO targets in `LedgerApi/docs/DISASTER-RECOVERY.md` |
-| G10 | Observability beyond logging | No | Documentation now; build later |
+| G10 | Observability beyond logging | No | **Resolved, 22 Oct 2026 — see TASKS.md T-040.** `OBSERVABILITY.md` added to `garbati-platform`, stating the "bring your own observability" posture explicitly, confirmed against real source per service (surfaced one real pre-existing exception: OpsApi has no durable audit table of its own) |
 | G11 | Infrastructure-as-code | **Yes** — timing/investment | Not urgent |
 | G12 | Regulatory reporting / ISO 20022 | No | Correctly deferred |
 | G13 | Explicit compliance-posture statement | No | Bundled into G2 |

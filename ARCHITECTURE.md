@@ -85,6 +85,7 @@ Ops console (browser)
 - **Logs:** never contain identity numbers (BVN/NIN), documents, keys or full request bodies.
 - **Versioning:** `/v1/` in the path; a breaking change creates `/v2/`.
 - **Health checks:** `/health/live` and `/health/ready`.
+- **Observability posture:** structured logs + correlation id + audit trail only, no metrics/tracing/alerting stack today — a deliberate "bring your own observability" choice, not an oversight. See `OBSERVABILITY.md`.
 
 ## 6. Repository layout
 

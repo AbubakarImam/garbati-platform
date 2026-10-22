@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-22: Writing down what GARBATI does and doesn't tell you when something goes wrong (garbati-platform, no PR — coordinator-direct, a pure documentation task; T-040, T-037 G10)
+**In plain words:** Every GARBATI service already logs requests, tags each one with an id you can trace across services, and writes a permanent audit row for anything that changes money or a customer's record. What it does *not* have is a dashboard that shows you "things are getting slower" or "errors just spiked" before a person notices. This task didn't build that dashboard — it wrote down, plainly, that this gap is a deliberate choice for now, not a secret, and what to reach for later if it's ever actually needed.
+
+**Five interview questions:**
+1. Q: Why write a document instead of just adding Application Insights or Prometheus now?
+   A: Because at GARBATI's current size, nothing has actually demonstrated a need for it yet — this follows the exact posture a real, comparable project (Apache Fineract) takes in its own documentation: state the expectation plainly, and leave the specific tool to whoever is actually operating a deployment, rather than build infrastructure speculatively.
+2. Q: While writing this, a real gap was found that wasn't the one being looked for — what was it?
+   A: While confirming each service shares the same audit-trail pattern, `Garbati.OpsApi` turned out to be the one exception — it has no durable audit table of its own for session events, relying only on request logs instead. This wasn't a new bug; it was a decision already written into that service's own design document when it was built, just not something anyone had stated plainly at the platform level until now.
+3. Q: Why name specific tools (Application Insights, Prometheus/Grafana) without picking one?
+   A: Because which one makes sense depends entirely on who ends up actually running GARBATI and what they're already paying for — recommending a specific tool here would be guessing at someone else's infrastructure budget. Naming the realistic options, honestly, is more useful than pretending there's one obvious right answer.
+4. Q: Does adding this document change how the correlation id or audit trail actually work?
+   A: No, and that was a deliberate design point of the document itself — whatever metrics/tracing tool an operator eventually adds should sit alongside the existing correlation-id-and-audit-table approach, not replace it. Searching logs by correlation id and querying an audit table directly will keep working exactly as already documented, with or without a dashboard layered on top later.
+5. Q: What would actually trigger building the real thing this document says GARBATI doesn't have yet?
+   A: Three honest triggers were named directly rather than left vague: real traffic reaching a point where "read the logs after someone complains" is too slow to be useful, a real incident that was genuinely harder to diagnose because a trace/metrics view didn't exist, or an operator actually asking for it. Until one of those is real, this document — not a built dashboard — is treated as the actual answer to this gap.
+
+**One thing that nearly went wrong:** It would have been easy to write this document from memory of "Serilog + correlation id + audit trail, all five services, done" without re-checking each service individually — since that pattern really was copied from service to service as the platform grew. Checking anyway (grepping each service's actual source, not trusting the pattern to have stayed uniform) is exactly what caught OpsApi's real, standing exception before it went into this document as a false "all five work identically" claim.
+
 ### 2026-10-22: A real, tested restore drill for the ledger's database (LedgerApi, no PR — coordinator-direct, a real Azure operation; T-039, T-037 G9)
 **In plain words:** The ledger's data — every balance, every transaction — only exists because of a managed database with automatic backups behind it. GARBATI's own README already said the right thing about this in one sentence, but a sentence isn't proof it actually works. This task did the only thing that counts as proof: restored a real copy of the production database from its own backup history to a brand-new, temporary server, checked that real account and transaction data actually came back, and then deleted that temporary copy — leaving production completely untouched the whole time.
 
