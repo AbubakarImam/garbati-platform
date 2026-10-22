@@ -1,0 +1,323 @@
+# G8 (garbati-platform T-038): the combined local-dev stack - every GARBATI service, its own database,
+# migrations applied automatically, and all five wired to talk to each other correctly, with one command:
+#
+#   docker compose up --build
+#
+# Prerequisite: clone every GARBATI service repo as a SIBLING of this one (same parent directory) -
+# LedgerApi, Garbati.IdentityApi, Garbati.OrchestratorApi, Garbati.StaffIdentityApi, Garbati.OpsApi -
+# exactly the layout this platform's own README already assumes for a coordinator/agent session. This
+# file builds each service from its own Dockerfile via a relative build context; it does not pull images
+# from a registry, since none is published anywhere.
+#
+# Each service's own migrator image (its Dockerfile's `migrator` target) applies pending EF Core
+# migrations and exits; the API container only starts once that finishes successfully AND its own
+# database reports healthy - the same two-step "migrate, then serve" sequence each service's CI pipeline
+# already performs, just run locally instead of against Azure.
+#
+# None of the five .NET services' own images include curl/wget (confirmed directly: the official
+# mcr.microsoft.com/dotnet/aspnet:8.0 base image has neither, and its default shell is dash, which has no
+# /dev/tcp either) - so cross-service readiness ("is OrchestratorApi not just running, but actually ready
+# to accept a request yet") is checked by a small, separate curlimages/curl sidecar per app, not by
+# modifying any of the five Dockerfiles. Anything that calls another service's API waits on that service's
+# *-wait helper (service_completed_successfully), not on the raw app container (which only proves the
+# container process started, not that Kestrel has finished binding).
+#
+# appsettings.Development.json (SigningKeys, dev ApiKeys.Clients, etc.) is deliberately listed in every
+# service's own .dockerignore - confirmed directly by grepping all five - so it never enters any `docker
+# build` context and can never be baked into a published image, dev or prod (a guard against a published
+# image accidentally shipping dev credentials). Each app service below instead bind-mounts that file
+# straight from the sibling checkout into the running container at the same path the app already loads
+# appsettings.{Environment}.json from (ASP.NET's config loader reads straight off disk at startup, so a
+# bind mount at /app/appsettings.Development.json works identically to the file having been published
+# there) - this needs no Dockerfile change at all and has zero effect on the Azure deploy pipeline, which
+# never runs this compose file.
+#
+# Dev-only credentials: every ApiKeys:Clients entry and the one ES256 signing key this stack relies on are
+# already committed openly in each service's own appsettings.Development.json (see Garbati.IdentityApi's
+# own SigningKeys._comment for why that's fine for a dev key, never a production one) - nothing here is a
+# real secret.
+
+services:
+  # ---------------------------------------------------------------------------------------------------
+  # LedgerApi
+  # ---------------------------------------------------------------------------------------------------
+  ledgerapi-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ledgerapi
+    ports:
+      - "5433:5432" # matches LedgerApi/README.md's own documented local dev port
+    volumes:
+      - ledgerapi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  ledgerapi-migrator:
+    build:
+      context: ../LedgerApi
+      target: migrator
+    depends_on:
+      ledgerapi-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__LedgerDb: "Host=ledgerapi-db;Port=5432;Database=ledgerapi;Username=postgres;Password=postgres"
+    restart: "no"
+
+  ledgerapi:
+    build:
+      context: ../LedgerApi
+      target: final
+    depends_on:
+      ledgerapi-migrator:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__LedgerDb: "Host=ledgerapi-db;Port=5432;Database=ledgerapi;Username=postgres;Password=postgres"
+    volumes:
+      - ../LedgerApi/src/LedgerApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      - "5200:8080"
+
+  ledgerapi-wait:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      - ledgerapi
+    command: >
+      sh -c "until curl -sf http://ledgerapi:8080/health/ready; do echo 'waiting for ledgerapi...'; sleep 2; done"
+
+  # ---------------------------------------------------------------------------------------------------
+  # Garbati.IdentityApi
+  # ---------------------------------------------------------------------------------------------------
+  identityapi-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: identityapi
+    ports:
+      - "5434:5432"
+    volumes:
+      - identityapi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  identityapi-migrator:
+    build:
+      context: ../Garbati.IdentityApi
+      target: migrator
+    depends_on:
+      identityapi-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__IdentityDb: "Host=identityapi-db;Port=5432;Database=identityapi;Username=postgres;Password=postgres"
+    restart: "no"
+
+  identityapi:
+    build:
+      context: ../Garbati.IdentityApi
+      target: final
+    depends_on:
+      identityapi-migrator:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__IdentityDb: "Host=identityapi-db;Port=5432;Database=identityapi;Username=postgres;Password=postgres"
+    volumes:
+      - ../Garbati.IdentityApi/src/Garbati.IdentityApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      - "5100:8080"
+
+  identityapi-wait:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      - identityapi
+    command: >
+      sh -c "until curl -sf http://identityapi:8080/health/ready; do echo 'waiting for identityapi...'; sleep 2; done"
+
+  # ---------------------------------------------------------------------------------------------------
+  # Garbati.OrchestratorApi - calls IdentityApi and LedgerApi, so it waits on both *-wait helpers first
+  # ---------------------------------------------------------------------------------------------------
+  orchestratorapi-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orchestratorapi
+    ports:
+      - "5435:5432"
+    volumes:
+      - orchestratorapi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  orchestratorapi-migrator:
+    build:
+      context: ../Garbati.OrchestratorApi
+      target: migrator
+    depends_on:
+      orchestratorapi-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__OrchestratorDb: "Host=orchestratorapi-db;Port=5432;Database=orchestratorapi;Username=postgres;Password=postgres"
+    restart: "no"
+
+  orchestratorapi:
+    build:
+      context: ../Garbati.OrchestratorApi
+      target: final
+    depends_on:
+      orchestratorapi-migrator:
+        condition: service_completed_successfully
+      identityapi-wait:
+        condition: service_completed_successfully
+      ledgerapi-wait:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__OrchestratorDb: "Host=orchestratorapi-db;Port=5432;Database=orchestratorapi;Username=postgres;Password=postgres"
+      # BaseUrls overridden to container DNS names on their internal port (8080) - the "localhost:51xx"
+      # values baked into appsettings.Development.json assume every service runs directly on the host
+      # instead, a different local-dev scenario this file doesn't touch. ApiKey values are NOT overridden
+      # here - the literal placeholder strings already in appsettings.Development.json are exactly what
+      # IdentityApi's and LedgerApi's own new "compose-orchestrator" clients (T-038) were hashed against.
+      DownstreamServices__IdentityApi__BaseUrl: "http://identityapi:8080"
+      DownstreamServices__LedgerApi__BaseUrl: "http://ledgerapi:8080"
+    volumes:
+      - ../Garbati.OrchestratorApi/src/Garbati.OrchestratorApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      # 5000, not 5001, was the original choice to match other services' own documented local-dev port -
+      # but macOS's AirPlay Receiver listens on 5000 by default on every Mac, so a newcomer's `docker
+      # compose up` would fail at this exact line with "address already in use" on a stock Mac. Remapped
+      # host-side only; the container's own internal port (8080) and every other service's DNS-based call
+      # to orchestratorapi are unaffected.
+      - "5001:8080"
+
+  orchestratorapi-wait:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      - orchestratorapi
+    command: >
+      sh -c "until curl -sf http://orchestratorapi:8080/health/ready; do echo 'waiting for orchestratorapi...'; sleep 2; done"
+
+  # ---------------------------------------------------------------------------------------------------
+  # Garbati.StaffIdentityApi - calls nothing downstream (StaffIdentityApi/docs/DESIGN.md 1: "this service
+  # calls nothing else at all"), so no wait on any other *-wait helper
+  # ---------------------------------------------------------------------------------------------------
+  staffidentityapi-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: staffidentityapi
+    ports:
+      - "5436:5432"
+    volumes:
+      - staffidentityapi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  staffidentityapi-migrator:
+    build:
+      context: ../Garbati.StaffIdentityApi
+      target: migrator
+    depends_on:
+      staffidentityapi-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__StaffIdentityDb: "Host=staffidentityapi-db;Port=5432;Database=staffidentityapi;Username=postgres;Password=postgres"
+    restart: "no"
+
+  staffidentityapi:
+    build:
+      context: ../Garbati.StaffIdentityApi
+      target: final
+    depends_on:
+      staffidentityapi-migrator:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__StaffIdentityDb: "Host=staffidentityapi-db;Port=5432;Database=staffidentityapi;Username=postgres;Password=postgres"
+    volumes:
+      - ../Garbati.StaffIdentityApi/src/Garbati.StaffIdentityApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      - "5300:8080"
+
+  staffidentityapi-wait:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      - staffidentityapi
+    command: >
+      sh -c "until curl -sf http://staffidentityapi:8080/health/ready; do echo 'waiting for staffidentityapi...'; sleep 2; done"
+
+  # ---------------------------------------------------------------------------------------------------
+  # Garbati.OpsApi - calls all four siblings, so it waits on every other *-wait helper
+  # ---------------------------------------------------------------------------------------------------
+  opsapi-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: opsapi
+    ports:
+      - "5437:5432" # was 5436 in OpsApi's own appsettings.Development.json - fixed by T-038, see its comment
+    volumes:
+      - opsapi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  opsapi-migrator:
+    build:
+      context: ../Garbati.OpsApi
+      target: migrator
+    depends_on:
+      opsapi-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__OpsDb: "Host=opsapi-db;Port=5432;Database=opsapi;Username=postgres;Password=postgres"
+    restart: "no"
+
+  opsapi:
+    build:
+      context: ../Garbati.OpsApi
+      target: final
+    depends_on:
+      opsapi-migrator:
+        condition: service_completed_successfully
+      staffidentityapi-wait:
+        condition: service_completed_successfully
+      identityapi-wait:
+        condition: service_completed_successfully
+      orchestratorapi-wait:
+        condition: service_completed_successfully
+      ledgerapi-wait:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__OpsDb: "Host=opsapi-db;Port=5432;Database=opsapi;Username=postgres;Password=postgres"
+      DownstreamServices__StaffIdentityApi__BaseUrl: "http://staffidentityapi:8080"
+      DownstreamServices__IdentityApi__BaseUrl: "http://identityapi:8080"
+      DownstreamServices__OrchestratorApi__BaseUrl: "http://orchestratorapi:8080"
+      DownstreamServices__LedgerApi__BaseUrl: "http://ledgerapi:8080"
+    volumes:
+      - ../Garbati.OpsApi/src/Garbati.OpsApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      - "5400:8080"
+
+volumes:
+  ledgerapi-db-data:
+  identityapi-db-data:
+  orchestratorapi-db-data:
+  staffidentityapi-db-data:
+  opsapi-db-data:

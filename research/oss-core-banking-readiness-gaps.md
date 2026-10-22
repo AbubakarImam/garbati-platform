@@ -89,7 +89,7 @@ Each gap states: what's missing, why it matters *for this specific kind of proje
 | G5 | CONTRIBUTING.md / cross-repo onboarding | Partially (how open to human contributors) | Real writing task |
 | G6 | CODE_OF_CONDUCT.md, CHANGELOG.md | No | Trivial |
 | G7 | Secrets-management target pattern | **Yes** — new dependency | Real design task |
-| G8 | Combined docker-compose for all services | No | Bounded engineering task |
+| G8 | Combined docker-compose for all services | No | **Resolved, 22 Oct 2026 — see TASKS.md T-038.** `docker-compose.yml` added to `garbati-platform`; live end-to-end smoke test (account opening, funding, transfer, reversal, staff login, OpsApi cross-service lookups) run and confirmed working through the stack itself |
 | G9 | Ledger DB backup/DR runbook, tested | No (direction already chosen) | Real task (a drill) |
 | G10 | Observability beyond logging | No | Documentation now; build later |
 | G11 | Infrastructure-as-code | **Yes** — timing/investment | Not urgent |
