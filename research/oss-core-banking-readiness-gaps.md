@@ -84,7 +84,7 @@ Each gap states: what's missing, why it matters *for this specific kind of proje
 |---|---|---|---|
 | G1 | LICENSE | **Yes** — which license, see benchmark table | Trivial once decided |
 | G2 | SECURITY.md / vuln disclosure | Partially (contact channel, SLA) | Small |
-| G3 | BVN/NIN encryption-at-rest pattern | **Yes** — owner + compliance + scholar | Real design task |
+| G3 | BVN/NIN encryption-at-rest pattern | **Yes** — owner + compliance (not scholar — corrected, this is a security/data-protection question, not a Sharia product-rule question) | **Decided, 23 Oct 2026 (D-26) — see TASKS.md.** Store unencrypted for now, revisit later; see `research/ndpa-encryption-requirement.md` (T-043) for the corrected legal basis |
 | G4 | CBN data-localisation deadline (new finding) | **Yes** — infra/hosting | **Decided, 22 Oct 2026 (D-24) — see TASKS.md.** Stay on Azure for now, revisit after the owner pursues the Huawei lead/other alternatives further; see `research/nigeria-hosting-options.md` (T-041) |
 | G5 | CONTRIBUTING.md / cross-repo onboarding | Partially (how open to human contributors) | Real writing task |
 | G6 | CODE_OF_CONDUCT.md, CHANGELOG.md | No | Trivial |
