@@ -101,3 +101,67 @@ My independent read: **this is a defensible but not clearly safe reading, and I'
 - Did not deploy to Azure or exercise the GitHub Actions `docker` job's exact environment beyond what the CI run already shows green; relied on the CI status and my own local `dotnet test` run.
 - Did not independently re-verify `research/nigerian-regulatory-requirements.md` Q1's Tier1/Tier2/Tier3 cardinality claims against a primary CBN source — that research document itself flags this as secondary-source-only and "needs compliance confirmation," which is outside this PR's and this QA pass's scope.
 - Did not attempt to actually trigger the concurrency race in §3 against a live instance (would require a purpose-built two-thread repro); the finding is based on reading the code path for a transaction/lock boundary and confirming none exists, not an observed failure.
+
+---
+
+## Follow-up review — 2026-10-23 (commit d6acf2e, same branch/PR #7)
+
+**Verdict: Approve.** The §3 Should-fix is resolved. No new issues found.
+
+The owner asked the builder to fix the §3 concurrency gap before merge. Builder's commit `d6acf2e` reports: a `SELECT ... FOR UPDATE` lock added to `SubmitIdentityNumbersAsync`, a new genuine-concurrency test, and 354/354 passing. I re-verified each claim directly rather than trusting the summary.
+
+### 1. The lock — real, correctly placed, matches the claimed precedent
+
+Read the current `SubmitIdentityNumbersAsync` directly. The method now opens an explicit transaction (`dbContext.Database.BeginTransactionAsync`), reads the customer `AsNoTracking` (never locked — correct, since `Customer` itself isn't mutated here), then loads `CustomerIdentityData` via:
+
+```csharp
+var identityData = await dbContext.CustomerIdentityData
+    .FromSqlInterpolated($"SELECT * FROM customer_identity_data WHERE customer_id = {customer.Id} FOR UPDATE")
+    .FirstAsync(cancellationToken);
+```
+
+This happens **before** the `request.Bvn`/`request.Nin` null-check branches that read `identityData.Bvn`/`identityData.Nin` — the lock is acquired before the read that matters, not after. `identityData` comes back tracked (not `AsNoTracking`), so the in-place mutations (`identityData.Bvn = request.Bvn`, etc.) further down are picked up by the later `SaveChangesAsync`, and the transaction is committed on every return path (the no-op branch now explicitly commits too, rather than relying on dispose-rollback) — the row stays locked for the method's full duration, released only at commit.
+
+I read `JointApprovalService.ApproveAsync` directly and compared line-by-line rather than trusting the commit message's claim of a match. It is the same pattern, applied correctly to a different row:
+- Same shape: `BeginTransactionAsync` → `FromSqlInterpolated("... FOR UPDATE")` → business logic → `SaveChangesAsync` → `CommitAsync` on every return path (including early-return branches that still must commit a prior write, e.g. `ApproveAsync`'s `ExpireIfPastDueAsync` branch; `SubmitIdentityNumbersAsync`'s no-op branch, symmetrically).
+- Same reason given for avoiding `Include()`: both avoid composing a `FOR UPDATE` query through a nullable-side join (Postgres rejects `FOR UPDATE` on the outer-joined side of a `LEFT JOIN`), and both separate the locked row query from any related-data load.
+- Correctly-reasoned divergence, not a copy-paste mismatch: `ApproveAsync` locks a row to serialize a many-approvers-racing-one-threshold decision; this fix locks a row to serialize a null-to-value transition. The PR's own comments explain why a unique constraint (the mandate-uniqueness pattern, decision #19) doesn't fit here — there's no cross-row uniqueness invariant, only one row's state transition — and that reasoning is sound.
+
+### 2. The new test — genuinely concurrent, confirmed by code reading and by behaviour
+
+Read `SubmitIdentityNumbersAsync_TwoConcurrentRequestsWithDifferentBvnValues_OnlyOneWins` directly. Both attempts are constructed via a lazy `Select` into `Task.Run(...)`, and the resulting `IEnumerable<Task<...>>` is passed straight to `Task.WhenAll` without any intermediate `.ToList()`/await — `Task.WhenAll`'s enumeration triggers each `Task.Run` call (which starts executing immediately) back-to-back before awaiting either, so both backgrounded tasks are genuinely in flight concurrently, not sequential-but-disguised. Each runs against its own `fixture.CreateContext()` — confirmed by reading `PostgresFixture.CreateContext()`: every call builds a fresh `DbContextOptions`/`IdentityDbContext`, which (via Npgsql's connection pool) is a distinct logical connection, not a shared `DbContext` being reused unsafely across threads. A third, independent context verifies the persisted winner afterward.
+
+This matches the shape of the existing `CreateCustomerAsync_ConcurrentRequestsWithOneKeyAndDifferentBodies_OneSucceedsOneConflicts` test referenced in the comment, which I spot-checked for the same shape.
+
+### 3. Proved the test actually catches the regression — the decisive check
+
+Per instructions, I did not just read the code and trust it. I reverted only `CustomerService.cs` to its pre-fix state (`git checkout d6acf2e^ -- src/Garbati.IdentityApi/Services/Implementations/CustomerService.cs`), leaving the new test, the DESIGN.md update, and everything else from the PR intact, then ran the new test in isolation 5 times:
+
+```
+Failed Garbati.IdentityApi.Tests.Services.CustomerServiceTests.SubmitIdentityNumbersAsync_TwoConcurrentRequestsWithDifferentBvnValues_OnlyOneWins
+  Error Message:
+   Assert.Single() Failure: The collection contained 2 matching items
+   Collection: [Tuple ("11111111111", "ok"), Tuple ("22222222222", "ok")]
+```
+
+Failed 5/5 runs, every time with **both** calls reporting `"ok"` — the exact silent-overwrite bug the fix targets (both requests read `Bvn == null`, both won, no 409 to either caller). This also independently confirms the test is genuinely concurrent and not secretly sequential: if the two calls ran one-after-the-other, the second would always see the first's already-set value and correctly receive `IdentityNumberAlreadySetException` ("ok"/"conflict") even without the lock — a sequential test could never reproduce "both won." Getting "both won" 5/5 times is only possible if both transactions genuinely read the pre-write state concurrently.
+
+I then restored the fix (`git checkout HEAD -- src/.../CustomerService.cs`), confirmed `git diff` was clean, and re-ran the test 5 times: passed 5/5. This is the strongest possible evidence the test is a real regression guard, not a vacuous one.
+
+### 4. Full suite — ran independently
+
+```
+Passed!  - Failed: 0, Passed: 354, Skipped: 0, Total: 354, Duration: 8-9 s
+```
+
+Matches the PR's claim of 354/354 exactly (353 prior + 1 new). I ran this both before and after the revert/restore experiment above, both green.
+
+### 5. Scope — confirmed nothing else changed
+
+`git show d6acf2e --stat` touches exactly three files: `docs/DESIGN.md` (documentation only — the new "QA fix" paragraphs in Appendix H, read in full, accurately describe the change and nothing else), `CustomerService.cs` (the fix itself), and `CustomerServiceTests.cs` (the new test). `JointApprovalService.cs` is untouched by this commit (read-only comparison target, as instructed). The §8 migration-human-gate item from the first review is a different file/commit entirely and is unaffected by this follow-up commit.
+
+### What I could not check
+
+- Did not test behaviour under real network-level concurrency (e.g. two actual concurrent HTTP requests through Kestrel) — only the two unit-level paths (`Task.Run` racing a real Postgres instance via Testcontainers, as the test does, and the direct revert/restore experiment above). This is consistent with how `ApproveAsync`'s own existing concurrency coverage is tested and is the project's established pattern.
+- Did not check behaviour under Postgres `deadlock_timeout`/statement_timeout configuration differences between this dev Testcontainers image and whatever production Postgres config is - the lock-wait semantics should be identical, but I didn't independently confirm production timeout settings wouldn't turn a lock-wait into a timeout error under higher real-world latency/connection-pool pressure.
+- Did not re-run the rest of the first review's checks (§1, §2, §4-§7) — out of scope for this focused follow-up, per instructions.
