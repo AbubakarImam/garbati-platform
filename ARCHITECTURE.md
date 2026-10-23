@@ -86,6 +86,7 @@ Ops console (browser)
 - **Versioning:** `/v1/` in the path; a breaking change creates `/v2/`.
 - **Health checks:** `/health/live` and `/health/ready`.
 - **Observability posture:** structured logs + correlation id + audit trail only, no metrics/tracing/alerting stack today — a deliberate "bring your own observability" choice, not an oversight. See `OBSERVABILITY.md`.
+- **Secrets-management posture:** hand-run `az` CLI, scattered across each service's own App Service settings, no centralized vault today — a deliberate, stage-appropriate deferral (D-25), not an oversight. See `SECRETS-MANAGEMENT.md`.
 
 ## 6. Repository layout
 
