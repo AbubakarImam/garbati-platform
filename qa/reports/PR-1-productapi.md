@@ -182,3 +182,123 @@ Run independently, bounded, with Docker/Testcontainers available:
 - Long-term stability of the hardcoded Postgres constraint-name strings against a future EF Core/Npgsql
   version upgrade that might change index-naming behavior — theoretical, not something exercisable
   without actually triggering such an upgrade.
+
+---
+
+## Follow-up re-review — 2026-10-24 (after 3 fix commits: `9b1abd7`, `7ac7bc3`-adjacent docs, `7ebab28`)
+
+**Scope:** Focused re-review only. Confirmed local `HEAD` (`7ebab28`) matches the PR's actual head commit
+on GitHub before reviewing, so this reflects the real current state of PR #1, not a stale clone. Did not
+re-review anything already approved above.
+
+### Verdict: Approve
+
+Both Should-fix items are genuinely fixed, with sound, honest tests — not tests that happen to pass for
+the wrong reason. The unplanned flaky-test fix is a real root-cause fix, correctly scoped. Nothing
+outside the stated scope changed. No new blockers.
+
+### 1. Should-fix #1 (AccountAlreadyBoundException coverage) — verified fixed
+
+Read `CreateAccountBinding_DifferentKey_SameAccountAlreadyBoundToAnotherProduct_Returns409` in
+`AccountBindingsControllerTests.cs` directly:
+
+- Binds account to product A under key 1, then attempts to bind the **same account number** to **product
+  B** under a **brand-new key** (not a replay) — exactly the gap called out previously.
+- Asserts the real `409`, `application/problem+json` content type, the exact title string ("This account
+  is already bound to a product."), and that `detail` contains the account number.
+- Also re-reads the binding row from the database afterward and asserts it's still bound to product A —
+  confirming the rejected second call didn't mutate state. This is a stronger assertion than the original
+  gap required and rules out a false pass (e.g., a bug that silently rebinds but still happens to return
+  409 for an unrelated reason).
+- Ran this test by itself against the real Testcontainers Postgres: passed, and the logged exception trace
+  confirms it actually went through `AccountProductBindingService.CreateAsync`'s
+  `pgEx.ConstraintName == AccountNumberConstraintName` branch → `AccountAlreadyBoundException` → the real
+  exception-handling middleware → 409. Not a coincidental pass.
+
+### 2. Should-fix #2 (DbUpdateException guard) — verified fixed
+
+- `ProductService.CreateAsync`'s catch clause now reads
+  `catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })` —
+  character-for-character the same pattern as `AccountProductBindingService.CreateAsync`'s guard (modulo
+  the latter also capturing `pgEx` by name, which `ProductService` doesn't need since it only reports a
+  fixed message either way). Confirmed by direct read, not trusted from the diff summary.
+- New `ProductServiceTests.cs` proves the negative case soundly: a `ThrowingOnSaveProductDbContext`
+  subclass overrides the real (virtual) `SaveChangesAsync` to always throw a `DbUpdateException` whose
+  `InnerException` is deliberately an `InvalidOperationException`, not a `PostgresException` — so it
+  cannot possibly match the `SqlState: "23505"` guard. The test asserts the thrown exception is a
+  `DbUpdateException` and explicitly `IsNotType<DuplicateProductCodeException>`. This is a real
+  inheritance-based test double against the actual `ProductDbContext`/`SaveChangesAsync` (which is
+  virtual on the EF Core base class), not a brittle mock of an interface that could drift from real
+  behavior — a sound technique for a case that isn't practical to trigger against live Postgres on
+  demand. Ran it standalone: passed.
+
+### 3. Unplanned flaky-test fix (`TruncateToMicroseconds`) — verified as a real root-cause fix, correctly scoped
+
+- The mismatch is real: Postgres `timestamp with time zone` stores microsecond precision (6 fractional
+  digits) while a .NET `DateTimeOffset` tick is 100ns (7 fractional digits) — so an in-memory value
+  created with `DateTimeOffset.UtcNow` and never re-read from the database can legitimately differ from
+  the same value read back after a round trip, by up to a few hundred nanoseconds. This is a genuine
+  precision-mismatch bug class, not a timing/ordering flake.
+- The fix truncates `BoundAt` **once, at the point of construction**, before it's either saved or
+  returned — so the in-memory value and the persisted value are identical from the start, rather than
+  retrying the comparison or widening an assertion's tolerance. This is a correct fix at the actual root
+  cause.
+- Scope check: grepped all `DateTimeOffset` fields across every entity
+  (`AccountProductBinding.BoundAt`, `ProductAuditLog.CreatedAt`, `Product.CreatedAt`/`EffectiveFrom`/
+  `EffectiveTo`, `FeeRule`/`ProfitSharingTerms`/`ProductLimitPolicy`'s `EffectiveFrom`/`EffectiveTo`).
+  `TruncateToMicroseconds` is a `private static` method inside `AccountProductBindingService` and is only
+  ever called once, on `BoundAt`, at binding creation — it is not shared or applied to any other field or
+  entity. Confirmed no other service/entity has an in-memory-vs-reread comparison test that this same
+  class of bug could affect today (`ProductService.CreateAsync` constructs `CreatedAt`/`EffectiveFrom` in
+  memory too, but no test currently round-trips and compares those values the way the binding replay test
+  does) — so this is a correctly minimal fix for the one real, currently-exercised case, not a
+  speculative fix applied everywhere. Worth a Nit for the owner's awareness, not a blocker.
+
+### 4. Test run — verified directly, not just trusted
+
+- `dotnet build -c Release`: clean, 0 warnings/errors.
+- `dotnet test -c Release --no-build`, run **twice independently** against real Testcontainers Postgres:
+  **60/60 passed both times** (~4s each), matching the claimed count exactly.
+- Ran the three new/changed tests in isolation with verbose output
+  (`CreateAccountBinding_DifferentKey_SameAccountAlreadyBoundToAnotherProduct_Returns409`,
+  `ProductServiceTests.CreateAsync_ADbUpdateExceptionThatIsNotAUniqueViolation_...`,
+  `CreateAccountBinding_RetryWithTheSameKeyAndBody_ReturnsTheSameBinding`) — all three passed, and the
+  captured log for the first shows the real exception traversing the real service → middleware pipeline,
+  not a stub.
+- GitHub Actions on the live PR (head commit `7ebab28`, confirmed to match local `HEAD`): both `test` and
+  `docker` jobs report `pass`.
+- Did not attempt to force a genuinely flaky repeat-until-fails loop beyond this (e.g., hundreds of runs)
+  — bounded by the task's own guidance to avoid open-ended retries. Two clean runs plus a green CI run is
+  treated as sufficient corroboration, not proof the flake can never recur under different CI host timing;
+  noted under "could not check."
+
+### 5. Diff scope — confirmed clean
+
+`git diff --stat` across all three new commits combined: exactly 6 files touched —
+`docs/DESIGN.md`, `ProductService.cs`, `AccountProductBindingService.cs`,
+`AccountBindingsControllerTests.cs`, `ApiFixture.cs` (a `CreateOptions()` accessor extracted so the new
+service-level test can build a `ProductDbContext` subclass against the same real database — a reasonable,
+minimal refactor, not scope creep), and the new `ProductServiceTests.cs`. Nothing else changed. No new
+dependency, no new `OrchestratorApi` wiring, no unrelated refactors.
+
+### Findings (follow-up)
+
+**Blockers:** none.
+
+**Should-fix:** none remaining — both original items are closed.
+
+**Nits:**
+
+1. `TruncateToMicroseconds` is currently private to `AccountProductBindingService` and only applied to
+   `BoundAt`. If a future test ever round-trips and compares `Product.CreatedAt`/`EffectiveFrom` (or any
+   other entity's `DateTimeOffset` field) the same way the binding replay test does, it could hit the
+   identical latent precision mismatch. Not a defect today — no such test exists — but worth the owner
+   knowing this is a per-field patch, not a platform-wide guard (e.g., a `SaveChanges` interceptor), in
+   case the pattern needs repeating elsewhere later.
+
+### What I could not check
+
+- Whether the flaky test could still recur under different CI runner timing/load than what was observed —
+  two local runs plus one green CI run is reasonable corroboration within this review's time budget, not
+  an exhaustive stress test.
+- Did not re-review anything outside the three new commits (by design, per the scope of this follow-up).

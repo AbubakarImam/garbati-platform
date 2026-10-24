@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-24: The Pricing Desk opens — built, tested, merged (Garbati.ProductApi PR #1; T-045)
+**In plain words:** The design from the entry below got built: a real product catalog, a real way to link an account to a product, and real limit rules — all working, tested, and merged. The two tables that would eventually hold fee and profit-sharing rules exist, but they're still empty on purpose, and the room's one working answer about a fee today is an honest "not configured yet," not an invented number.
+
+**Five interview questions:**
+1. Q: QA found two real issues before this merged — what were they, and why weren't they treated as blockers?
+   A: Neither one was a case of the service doing the wrong thing today — one was a real, untested edge case (trying to bind an already-bound account under a different request key), and the other was an inconsistency in how two very similar pieces of code handled an unexpected database error. Both were real enough that the owner asked to fix them before merging anyway, rather than ship a known gap and hope it doesn't matter.
+2. Q: While fixing those two things, a third, unplanned bug turned up. What was it, and why fix it now instead of later?
+   A: A timestamp comparison test was occasionally failing for a reason that had nothing to do with the two requested fixes — a database and the application were rounding the exact same moment in time slightly differently, so comparing them directly sometimes didn't match. It surfaced while re-running the full test suite to confirm the real fixes worked, and leaving a newly-discovered flaky test in place would have undermined the very confidence that re-run was supposed to provide.
+3. Q: How do you tell a timestamp bug that's genuinely fixed from one that's just made rarer?
+   A: By checking where the fix actually happens — here, the value gets rounded to the same precision once, right when it's created, so the two things being compared later are identical by construction, not by chance. A fix that instead retried the comparison or loosened how close is "close enough" would only have made the failure less frequent, not impossible.
+4. Q: The first attempt to independently verify this PR didn't produce a result at all. What happened, and what did that change about how the review got redone?
+   A: It stalled out and returned nothing usable after running for a long time with no visible progress — not a false "pass," just silence. The honest response was to throw that attempt away entirely and start the review over from scratch with explicit limits on how long any one check was allowed to run, rather than patch together a partial result or assume the silence meant things were fine.
+5. Q: What's actually true about this service today versus still pending?
+   A: The catalog, account-binding, and limits are real, tested, and merged — but nothing yet calls this service from the rest of the platform, and it isn't deployed anywhere live. Built and wired up are two different milestones, and only the first one happened today.
+
+**One thing that nearly went wrong:** After being asked to wait for the fixes and then merge, a message arrived asking to merge before any confirmation the fixes had actually landed. Checking the real pull request first — not assuming a request to merge meant the earlier request to fix-first had quietly been satisfied — caught that the fix was still in progress, and surfaced the contradiction plainly instead of either merging the wrong version or silently ignoring the merge request.
+
 ### 2026-10-24: Starting the Pricing Desk without inventing a price (Garbati.ProductApi, no PR — coordinator-direct design step; T-009)
 **In plain words:** GARBATI has had a "Pricing Desk" written into its blueprint since the very first day of planning — the room that decides what fees and product rules apply, so the Vault and the Teller never have to guess. Nobody had actually built it yet. Starting it was tempting to do all at once, but part of what this room is *for* — deciding Sharia-compliant fee and profit-sharing rules — genuinely cannot be done responsibly without a qualified scholar's sign-off that doesn't exist yet. So this step built the half that's real and mechanical today, and left the religiously/legally sensitive half as an empty, clearly-labeled shape rather than inventing numbers to fill it.
 
