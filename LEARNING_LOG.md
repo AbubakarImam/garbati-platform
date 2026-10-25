@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-25: Two already-approved pull requests that sat open for days (Garbati.IdentityApi PR #7, Garbati.OrchestratorApi PR #5; T-044, T-036)
+**In plain words:** Both of these were done — reviewed, fixed, re-reviewed, given a clean approval — well before today. Neither one got actually merged at the time, because the conversation moved on to other work right after the approval instead of closing the loop. A routine "merge it" request surfaced that gap instead of a brand-new review, because a quick check showed no pull request was actually waiting on a decision anymore — the decision had already happened, twice, and just never got carried out.
+
+**Five interview questions:**
+1. Q: If both of these were already approved, what was there left to even check before merging?
+   A: Whether anything had changed underneath them since the approval — and one of the two had: the main line of the project had moved five commits ahead in the days since, all routine documentation and configuration additions, but "routine" still needed confirming rather than assuming before putting two different branches together.
+2. Q: What's the actual risk in letting an approved change sit unmerged for days instead of merging it right away?
+   A: Exactly what happened to the second one — the rest of the project kept moving, and what was once a same-day merge became a small, if low-risk, reconciliation job later. The fix itself was easy here, but the lesson is that "approved" and "merged" are two different states, and letting the gap between them grow is where avoidable extra work comes from.
+3. Q: A request came in to merge something, but there were actually two separate candidates it could have meant. What's wrong with just picking one and going with it?
+   A: Guessing which of two real, independent decisions someone meant - "the one you looked at already," or "any PR that happens to be sitting there" - risks either merging something they weren't thinking of, or leaving behind the one they actually wanted handled. Naming both options and letting them choose costs one extra exchange and removes the guesswork entirely.
+4. Q: Once told to merge both, why update one branch before merging it instead of forcing the merge through anyway?
+   A: GitHub itself refused the direct merge because that branch no longer reflected the current state of the main line closely enough to combine automatically — forcing it through anyway, if even possible, means merging without re-confirming the result still works correctly against what the project actually looks like today, not what it looked like when it was first approved.
+5. Q: After updating that branch, why wait for its checks to run again instead of merging right away, since it had already passed before?
+   A: Because "before" was against an older version of the main line — the only way to know the combined result (old change plus new unrelated additions) actually still works is to test that exact combination, not assume that two separately-working things are still working once put together.
+
+**One thing that nearly went wrong:** Nothing went wrong here, but it's worth naming why: a direct instruction to merge something was treated as a reason to go check the real, current state first - not as permission to skip that check because the request sounded confident. The gap between "this was approved" and "this is actually merged" is exactly the kind of thing that's easy to lose track of once attention moves elsewhere, which is the whole reason it's worth re-verifying before acting on an old approval instead of trusting that nothing has changed.
+
 ### 2026-10-24: The Pricing Desk opens — built, tested, merged (Garbati.ProductApi PR #1; T-045)
 **In plain words:** The design from the entry below got built: a real product catalog, a real way to link an account to a product, and real limit rules — all working, tested, and merged. The two tables that would eventually hold fee and profit-sharing rules exist, but they're still empty on purpose, and the room's one working answer about a fee today is an honest "not configured yet," not an invented number.
 
