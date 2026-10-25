@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-25: Closing the one gap the architecture doc has named since day one (Garbati.OrchestratorApi PR #6; T-046)
+**In plain words:** The platform's own blueprint always described opening an account as five steps, ending with "attach the account to a product." Only four of those steps ever got built, because the fifth one needed a service that didn't exist yet. Now that service exists, so this closed the last gap — and while reviewing it, a second, unrelated gap turned up in that other service itself: two placeholder product records had been described in one table but never actually created in the table that matters, meaning the very feature this task depends on would have failed every single time it was tried for real.
+
+**Five interview questions:**
+1. Q: How did a step that was documented from the very beginning end up being the last one built?
+   A: Because it genuinely couldn't be built any earlier — it depends on calling a separate service that simply didn't exist until a few days ago. A documented, deliberately-deferred gap isn't the same thing as a forgotten one; this was always a "step 5, once step 5's dependency exists" plan, not an oversight.
+2. Q: The task that built this new step touches two different services. Why did the actual fix for the second service's seed-data bug happen somewhere else, instead of inside this same task?
+   A: Because each task stays inside its own repository's walls, on principle — a task scoped to one service doesn't quietly start editing a different one just because it would be convenient. The builder noticed the real bug, wrote down exactly what needed fixing and why, and handed that off rather than reaching across the boundary itself.
+3. Q: How was it confirmed that the seed-data fix actually solved the problem, rather than just looking plausible?
+   A: By doing it for real against an actual, disposable copy of the database — running every migration end to end, then directly querying both tables afterward to see the two records sitting there correctly, matching each other. Not reading the code and assuming it would work; actually watching it happen.
+4. Q: The fix to that other service's dev configuration involved a cryptographic hash someone else had already computed. Why recompute it instead of just using the one that was handed over?
+   A: Because a hash that's wrong in even one character would fail silently in a very specific way — authentication would just quietly reject every request — and that kind of failure is exactly the sort of thing worth spending ten extra seconds ruling out directly, rather than inheriting someone else's arithmetic on faith.
+5. Q: What's the actual, concrete outcome of this step existing now that didn't exist before?
+   A: Opening an account for real now ends with the account genuinely linked to a specific product, not just a customer and a ledger balance — which is the piece every future fee or product-rule decision will eventually need to hang off of. Nothing about *what* that product charges or requires changed today; only the fact that an account now knows *which* product it belongs to.
+
+**One thing worth noting:** the task file's instruction to read the other service's real source code before assuming how it would behave - rather than guessing at its retry logic from its name or its docs - is what surfaced the seed-data bug in the first place. Reading the actual migration files directly, not a summary of them, showed a placeholder description existed in one table with nothing in the other table it depended on - a gap that would have been invisible from reading documentation alone, and would otherwise have surfaced for the first time during an actual demo instead of before one.
+
 ### 2026-10-25: Two already-approved pull requests that sat open for days (Garbati.IdentityApi PR #7, Garbati.OrchestratorApi PR #5; T-044, T-036)
 **In plain words:** Both of these were done — reviewed, fixed, re-reviewed, given a clean approval — well before today. Neither one got actually merged at the time, because the conversation moved on to other work right after the approval instead of closing the loop. A routine "merge it" request surfaced that gap instead of a brand-new review, because a quick check showed no pull request was actually waiting on a decision anymore — the decision had already happened, twice, and just never got carried out.
 
