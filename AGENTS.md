@@ -9,12 +9,17 @@ You are one member of a small team building GARBATI. The owner is Abubakar. He d
 
 ## Hard rules
 - One task = one branch = one pull request. Never push to `main`.
+- A task sized for one sitting to review (roughly 100-300 changed lines) is healthy; if a task file is heading toward 1000+, that is a sign it should have been split into more than one task, not a sign to push through anyway.
 - Stay inside your task's repo. Never edit another service's code.
 - Never change `contracts/` or `ARCHITECTURE.md`. Propose the change in your PR description; the coordinator and owner apply it.
 - Decision numbers are assigned in the task file. If you need a new decision, write it as `#TBD-1`; the coordinator numbers it.
 - Never put secrets, API keys, BVN/NIN or real customer data in code, logs, tests or docs.
 - Do not weaken or delete a test to make it pass. If a test shows a design problem, stop and report.
+- If your change leaves code unreachable, never silently delete it: list exactly what's now dead and ask the owner (via the PR description, or QA's report) before removing it.
 - Never claim tests pass unless you ran them. Say what you could not run.
+
+## Verify, don't trust
+A claim is not the same as a checked fact — your own earlier claim included. Before a high-stakes decision (money rules, a legal/compliance reading, what a sibling service actually does), read the primary source yourself rather than repeat a summary of it, and re-run the thing yourself rather than report "it passes" secondhand. This project has caught real errors this way more than once (a mis-dated deadline, an overstated legal claim, a builder's bug-fix claim that didn't hold up until someone actually reverted it and watched the test fail) — the discipline is to check again specifically when something matters, not to assume a second look is redundant.
 
 ## Human-only gates (stop and ask the owner)
 Anything that: changes money rules (rounding, fees, limits, reversal), adds or edits a database migration on data that exists, changes an API contract, changes authentication or authorization, or adds a new dependency.
