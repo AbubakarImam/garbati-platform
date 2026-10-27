@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-27: The second workflow finally does what the first one already did (Garbati.OpsApi PR #3; T-047)
+**In plain words:** OpsApi has two staff-approval workflows that look almost identical on paper: one for reversing a transaction, one for correcting a customer's name, email or phone number. The reversal one was always built all the way through — approve it, and it actually goes and reverses the money. The customer-detail one stopped one step short: approving it just marked it "Approved" and nothing more, because the one thing it needed to call didn't exist yet when it was built. That thing exists now, so this task finished the second workflow the exact same way the first one was already finished — not a new idea, just catching the second one up.
+
+**Five interview questions:**
+1. Q: Why did one of these two near-identical workflows get finished a few weeks before the other?
+   A: Because the piece each one needed to call lived in a different place, and one of those two pieces simply wasn't built yet at the time — reversing money went through a service that already existed; correcting a customer's details needed a specific feature in a different service that hadn't been added yet. The gap wasn't a mistake, it was dependency order.
+2. Q: The reversal workflow uses a special one-time code to make sure the same reversal can never accidentally happen twice. Why doesn't the customer-detail workflow need the same protection?
+   A: Because the two actions behave completely differently if repeated. Reversing the same payment twice would actually move money a second time — a real, serious mistake. Setting someone's name to the same value twice does nothing different the second time; it's already in its final, correct state after the first attempt, so there's nothing extra for a repeat to break.
+3. Q: What happens if the one downstream call this task adds actually fails?
+   A: The approval itself still counts as having happened — a staff member really did approve it — but the record is marked as a distinct "approved but not actually applied" state, with the real reason written down, rather than either pretending it succeeded or losing track of what happened.
+4. Q: How was it actually proven that a request already in one of the two new end states can't be approved a second time, rather than just assumed?
+   A: By building two real tests that each push a request all the way into one of the two new states for real, then immediately trying to approve it again and checking that the existing safety check catches it — without needing to change that check at all. Proving a guard already covers a new case is different from just assuming old code still works after something new was added next to it.
+5. Q: If this task is basically "do what the other workflow already does," why wasn't it finished on the very same day the other one was?
+   A: Because the one thing it depended on — the ability to actually apply a customer-detail change in the other service — hadn't been built yet at that point either. Both workflows were planned to be finished the same way from the start; one just had to wait for its dependency to exist first.
+
+**One thing worth noting:** the two small issues an independent review raised afterward were both judged not worth blocking on — one was a harmless, already-unreachable safety check left in out of habit, and the other was simply that this very journal entry hadn't been written yet at the moment the review happened, which is expected, since that step comes right after a merge, not before one.
+
 ### 2026-10-25: Closing the one gap the architecture doc has named since day one (Garbati.OrchestratorApi PR #6; T-046)
 **In plain words:** The platform's own blueprint always described opening an account as five steps, ending with "attach the account to a product." Only four of those steps ever got built, because the fifth one needed a service that didn't exist yet. Now that service exists, so this closed the last gap — and while reviewing it, a second, unrelated gap turned up in that other service itself: two placeholder product records had been described in one table but never actually created in the table that matters, meaning the very feature this task depends on would have failed every single time it was tried for real.
 
