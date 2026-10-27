@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-27: Checking "still working" instead of assuming it (LedgerApi URL fix; T-048 addendum)
+**In plain words:** Right after finishing a deployment and declaring it done, a routine double-check of every live service found one of the three *older*, already-established services was actually unreachable at the address everyone had been using for it. The hosting platform had quietly moved it to a new, longer address at some point in the past as a security precaution, and most things pointing at it had already been fixed - except one setting, changed during the very same work being wrapped up, that still had the old, now-dead address baked in.
+
+**Five interview questions:**
+1. Q: If this was a mistake made today, why wasn't it caught immediately?
+   A: Because the service that made the mistake - the one holding the wrong address - was still perfectly healthy on its own; the broken part was a call it would make *to a different service*, something its own basic health check has no reason to test. It looked fine from the outside while quietly being unable to actually reach one of its neighbors.
+2. Q: How did the old address stop working in the first place?
+   A: The hosting platform changed it on its own, as a general security measure applied to older services that hadn't set up a permanent custom address - nothing about this project caused that change, and nothing anyone did was wrong at the time the services were first set up.
+3. Q: If two other things pointing at that same old address had already been fixed, why wasn't the third one caught at the same time?
+   A: Because those two fixes happened at a different time, for a different reason, by someone who was dealing with that exact service directly. The third address was a separate copy of the same information, set independently, during a completely different task weeks later - nothing connected the two moments, so fixing one didn't mean the other got checked too.
+4. Q: What specifically caught this, rather than it going unnoticed?
+   A: A deliberate decision to re-check every live service's basic health one more time immediately after declaring a big piece of work finished, instead of accepting "it worked when I tested it" as the final word. That one extra pass across all six services - not any test connected to the actual change - is what surfaced it.
+5. Q: Doesn't finding a mistake like this undercut confidence in everything else that was just done?
+   A: Not if it's reported plainly rather than quietly patched and forgotten - the value of continuing to check after declaring something "done" is exactly that it catches this kind of thing before it causes a real problem, and saying so honestly is more trustworthy than pretending everything was perfect the first time.
+
+**One thing worth noting:** it would have been easy to stop checking the moment the specific task just finished was confirmed working - that task's own success didn't depend on this. Checking everything else nearby anyway, purely as a precaution, is what found a genuine, currently-live problem instead of leaving it to surface later as a real outage.
+
 ### 2026-10-27: Three services go from "tested" to "actually running" (StaffIdentityApi, OpsApi, ProductApi; T-048)
 **In plain words:** Three services had been fully built and tested for days or weeks, but none of them actually existed anywhere a real request could reach them — they only ran on a laptop, inside a test suite. This task gave all three a real address on the internet: a real database, a real server, and — the part that actually took the most care — real, working passwords between every pair of services that now needed to talk to each other for real, not the placeholder ones used for local testing.
 
