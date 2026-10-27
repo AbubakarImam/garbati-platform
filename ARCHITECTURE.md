@@ -87,6 +87,7 @@ Ops console (browser)
 - **Health checks:** `/health/live` and `/health/ready`.
 - **Observability posture:** structured logs + correlation id + audit trail only, no metrics/tracing/alerting stack today — a deliberate "bring your own observability" choice, not an oversight. See `OBSERVABILITY.md`.
 - **Secrets-management posture:** hand-run `az` CLI, scattered across each service's own App Service settings, no centralized vault today — a deliberate, stage-appropriate deferral (D-25), not an oversight. See `SECRETS-MANAGEMENT.md`.
+- **Infrastructure-provisioning posture:** hand-run `az` CLI, no Infrastructure-as-Code tool today — a deliberate deferral (D-27), not an oversight. See `DEPLOYMENT-RUNBOOK.md` for the exact, repeatable sequence and the real gotchas it already caught.
 
 ## 6. Repository layout
 

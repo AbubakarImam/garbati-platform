@@ -13,6 +13,23 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
+### 2026-10-27: Writing down how something was done, instead of building a tool to enforce it (deployment runbook; D-27, T-037 G11)
+**In plain words:** There are two different answers to "how do we make sure our cloud setup stays correct": write a tool-readable file that a program checks against reality every time, or write a plain, human-readable set of steps someone can follow by hand. The first is more powerful but costs real setup time; the second is much cheaper but only helps if someone actually reads and follows it. Given how few services exist today, the cheap option was chosen deliberately — with an explicit date to revisit that choice once there's more to manage.
+
+**Five interview questions:**
+1. Q: If writing everything down doesn't actually stop mistakes the way a real checking tool would, why bother?
+   A: Because the alternative today isn't "a tool catches it" versus "a document catches it" — it's "a document exists" versus "nothing exists, and the next person has to reconstruct the steps from scratch or from old conversation history." A document is a real improvement over nothing, even though it's a smaller improvement than a tool that actively checks for you.
+2. Q: The write-up admits one of the real mistakes made the same day wasn't something a stricter process would have caught anyway. Why include that honestly instead of letting the other two carry the argument?
+   A: Because overstating how much a given fix would help is exactly the kind of exaggeration that erodes trust in a decision later, once someone checks the claim against what actually happened. Naming the one problem that a real checking tool genuinely wouldn't have caught, right next to the two it likely would have, is a more honest and ultimately more convincing case than pretending all three support the same conclusion.
+3. Q: What's the actual trigger that was agreed on for revisiting this, rather than leaving it vague?
+   A: Finishing the services that haven't been started yet. That's a concrete, checkable condition rather than a vague "later" - once there are more moving pieces to manage by hand, the cost of a repeatable checking tool becomes easier to justify, and there will also be more real experience by then to know what that tool actually needs to express.
+4. Q: Doesn't finding real mistakes the very same day as a big deployment undercut confidence in that deployment?
+   A: The opposite, if they're caught and written down rather than hidden - a process that catches its own real mistakes right away and documents them for next time is more trustworthy than one that never surfaces any mistakes at all, which usually just means nobody looked closely enough afterward.
+5. Q: Why mention a comparable, well-known open-source project's own choice not to ship this kind of tooling either?
+   A: As evidence against a specific wrong worry - that skipping this makes the project look less serious or less mature than it should be at this stage. A real, comparable, well-regarded project making the same call for the same size-appropriate reason is a useful, honest check against over-correcting out of appearance rather than actual need.
+
+**One thing worth noting:** the instinct to immediately reach for a powerful tool right after finding real mistakes is understandable but worth resisting without checking first whether the tool would have actually prevented those specific mistakes - one of the three found that same day genuinely wouldn't have been caught by it either way, and being honest about that distinction is what makes the eventual case for adopting the tool later actually credible, rather than a reflex.
+
 ### 2026-10-27: Checking "still working" instead of assuming it (LedgerApi URL fix; T-048 addendum)
 **In plain words:** Right after finishing a deployment and declaring it done, a routine double-check of every live service found one of the three *older*, already-established services was actually unreachable at the address everyone had been using for it. The hosting platform had quietly moved it to a new, longer address at some point in the past as a security precaution, and most things pointing at it had already been fixed - except one setting, changed during the very same work being wrapped up, that still had the old, now-dead address baked in.
 
