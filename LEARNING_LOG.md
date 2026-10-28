@@ -13,7 +13,7 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
-### 2026-10-29: A public front door that can't drift from the real files (docs site; T-051, garbati-platform PR #TBD)
+### 2026-10-29: A public front door that can't drift from the real files (docs site; T-051, garbati-platform PR #1)
 **In plain words:** GARBATI had no single place a stranger could read to understand what it is without cloning six repos and reading raw markdown. This builds a small, designed website - not a wiki dump - hosted free on GitHub Pages, built straight from a `docs/` folder the same way GitHub already knows how to build Jekyll sites, with no custom pipeline. The trick that matters most: two of its pages (Architecture, Replicate It) don't contain their own copy of anything. They pull the real `ARCHITECTURE.md` and `DEPLOYMENT-RUNBOOK.md` files from one directory up, at build time, every time, using Jekyll's `include_relative` tag - so there is nothing to forget to update when those real files change. A third page (the research index) needed a different trick, because Jekyll's own build has no way to look outside its folder and list what's in another one; a small GitHub Action regenerates one tiny data file whenever `research/` changes, and the page just reads that.
 
 **Five interview questions:**
