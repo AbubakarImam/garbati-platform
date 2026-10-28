@@ -157,6 +157,23 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://$APP_NAME.azurewebsites.net/<a
   may already exist on a target service with the wrong scopes for your actual need, and its plaintext is
   never recoverable (hash-only storage, by design) even if the scopes did match. Check the actual scopes
   against the calling service's own `DESIGN.md`, and generate fresh if there's any doubt.
+- **A migration that adds a new unique/filtered constraint to an already-populated table can fail at
+  deploy time if real data already violates it — and that is the *correct*, safe outcome, not a bug to
+  work around.** Confirmed directly (T-049, D-16, 28 Oct 2026): `IdentityApi`'s deploy failed its `Apply
+  migrations` step with a genuine Postgres `23505` unique-violation against one pre-existing duplicate
+  row. The deploy aborted cleanly, the running app was never touched, and nothing was corrupted. The
+  agent could not query or fix the production data itself — the session's own permission classifier
+  blocks any direct read or write against a production database, the same class of restriction as the
+  RBAC role-assignment step above. Pattern that worked: the owner opens a temporary, IP-scoped firewall
+  rule (`az postgres flexible-server firewall-rule create` — note a residential IP can change between
+  steps; re-run `curl -s https://api.ipify.org` and `az ... firewall-rule update` if a connection times
+  out), the agent writes a **self-contained script** (not an inline one-off command) that the owner runs
+  via `!` — one script to inspect and report the actual conflicting rows, a second, separate script to
+  resolve them that **re-verifies the exact row's full contents against the values just confirmed before
+  deleting anything**, aborting instead of deleting on any mismatch. The owner gives explicit go-ahead
+  between the two scripts; the agent never deletes data from a judgment call alone. Firewall rule removed
+  afterward. Only once the conflict is actually resolved does re-running the deploy make sense — retrying
+  blindly just reproduces the same failure.
 
 ## When to actually move to Infrastructure-as-Code
 
