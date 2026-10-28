@@ -1,0 +1,423 @@
+/*
+  GARBATI docs site - "ledger register" design.
+  Concept: the subject is a double-entry core ledger, so the page reads like one -
+  hairline rules between sections like ledger rows, tabular numerals on every number,
+  real structure instead of a generic SaaS hero-with-gradient template.
+*/
+
+:root {
+  --ground: #F4F6F3;
+  --ink: #10262B;
+  --teal: #1E5159;
+  --brass: #B9862E;
+  --line: #C9D3CC;
+
+  --ink-soft: #10262Bcc;
+  --surface: #FFFFFF;
+  --max-width: 860px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0E1A1C;
+    --ink: #E9EDE9;
+    --teal: #5FA3AC;
+    --brass: #D9A94B;
+    --line: #27393C;
+
+    --ink-soft: #E9EDE9cc;
+    --surface: #132327;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--teal);
+  text-decoration-color: var(--line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--brass);
+}
+
+h1, h2, h3, h4 {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  color: var(--teal);
+  line-height: 1.15;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
+
+h1 {
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-weight: 600;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+
+h3 {
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 1.1em;
+}
+
+/* Numbers, code, every stat/count: IBM Plex Mono with tabular numerals wherever
+   digits sit in a column - this is a banking ledger site, numbers aligning matters. */
+code, pre, kbd, .mono, .stat-value, table {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+code, pre, .mono, .stat-value, table, time {
+  font-variant-numeric: tabular-nums;
+}
+
+code {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  font-size: 0.88em;
+}
+
+pre {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1em 1.1em;
+  overflow-x: auto;
+  font-size: 0.88em;
+  line-height: 1.5;
+}
+
+pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Layout shell */
+.site-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.site-brand {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.site-brand:hover {
+  color: var(--teal);
+}
+
+.site-nav {
+  display: flex;
+  gap: 1.35rem;
+  flex-wrap: wrap;
+  /* A flex item's default min-width is auto (its unwrapped content width), which silently
+     overrides flex-wrap and forces the whole header - and with it the page - wider than a
+     narrow viewport. This is what the phone-width check below actually caught happening at
+     400px: nav text clipped at the same right edge as the body copy beneath it, because the
+     nav's refusal to shrink was the real width forcing the whole page wider, not a bug local
+     to the nav itself. min-width: 0 lets it shrink and wrap like a normal block instead. */
+  min-width: 0;
+}
+
+.site-nav a {
+  font-family: "Work Sans", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a.is-active {
+  color: var(--brass);
+  border-bottom: 1px solid var(--brass);
+}
+
+main {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+/* Overflow containers for wide tables/diagrams, per the gutter/responsiveness rule - the page
+   body itself must never scroll horizontally. `.diagram-wrap` is authored by hand around the
+   one hand-built SVG. `.table-scroll` is added at runtime (see the script in
+   _layouts/default.html) around every <table> kramdown renders, including the ones inside the
+   ARCHITECTURE.md/DEPLOYMENT-RUNBOOK.md mirrors - those files can't be hand-edited to add a
+   wrapper div themselves (they're auto-synced from the real ones, see scripts/sync_docs.py),
+   and wrapping a whole included page in one div would make headings/paragraphs scroll
+   sideways along with any one wide table, which is worse than not wrapping at all. */
+.table-scroll, .diagram-wrap {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+th, td {
+  border: 1px solid var(--line);
+  padding: 0.55em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-family: "Work Sans", sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--teal);
+  background: var(--surface);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--line);
+}
+
+/* The recurring structural device: a hairline rule with a small uppercase label
+   sitting on it, like a ledger row header. Not numbered markers (01/02/03) - this
+   is the one device, used for every major section break. */
+.ledger-rule {
+  position: relative;
+  margin: 3.25rem 0 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.ledger-rule span {
+  position: absolute;
+  top: -0.62em;
+  left: 0;
+  background: var(--ground);
+  padding-right: 0.85em;
+  font-family: "Work Sans", sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+/* Hero */
+.hero {
+  padding-top: 0.5rem;
+}
+
+.hero .thesis {
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+  max-width: 34em;
+}
+
+.hero .cta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.btn {
+  display: inline-block;
+  font-family: "Work Sans", sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  padding: 0.65em 1.3em;
+  border-radius: 3px;
+  text-decoration: none;
+  border: 1px solid var(--teal);
+  color: var(--teal);
+}
+
+.btn:hover {
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+/* The one CTA button - the brass accent, spent deliberately in exactly one place. */
+.btn-primary {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #10262B;
+}
+
+.btn-primary:hover {
+  background: var(--brass);
+  color: #10262B;
+  opacity: 0.88;
+}
+
+/* Stat strip - a ledger row of real counts, not invented round numbers. */
+.stat-strip {
+  display: grid;
+  /* min(140px, 100%), not a bare 140px: a bare minimum track width can force the whole grid -
+     and with it the page body - wider than a narrow viewport and trigger horizontal scroll,
+     which the phone-width check below caught happening at 400px before this fix. */
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 2rem 0 0.6rem;
+}
+
+.stat {
+  padding: 1.1rem 1.1rem 1rem;
+  border-left: 1px solid var(--line);
+}
+
+.stat:first-child {
+  border-left: none;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.9rem;
+  font-weight: 500;
+  color: var(--teal);
+  line-height: 1;
+}
+
+/* The single stat highlight - the one place brass appears as a number color. */
+.stat-highlight .stat-value {
+  color: var(--brass);
+}
+
+.stat-label {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: "Work Sans", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.stat-asof {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-bottom: 2.5rem;
+}
+
+/* Architecture diagram */
+.diagram-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 640px;
+}
+
+.diagram-caption {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-top: 0.75rem;
+}
+
+/* Replicate teaser */
+.replicate-teaser {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.5rem 1.6rem;
+  background: var(--surface);
+}
+
+/* Closing "further reading" block */
+.further-reading ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.further-reading li {
+  padding: 0.6em 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.further-reading li:last-child {
+  border-bottom: none;
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  margin-top: 2rem;
+}
+
+.site-footer-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.site-footer-inner a {
+  color: var(--teal);
+}
+
+/* Phone-width: side gutter >= 16px is already satisfied by main/header/footer padding
+   (1.25rem = 20px); nothing here needs to shrink further, just make sure rows wrap. */
+@media (max-width: 480px) {
+  .site-header-inner {
+    padding: 1rem 1rem;
+  }
+  main {
+    padding: 2rem 1rem 3rem;
+  }
+  .site-footer-inner {
+    padding: 1.25rem 1rem 2rem;
+  }
+}

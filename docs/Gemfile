@@ -1,0 +1,12 @@
+source "https://rubygems.org"
+
+# Plain `jekyll`, not the `github-pages` meta-gem: `github-pages` pins a large, slow-to-resolve
+# dependency set and requires a newer Ruby than every contributor is guaranteed to have. This site
+# only relies on core Jekyll behavior (kramdown as the markdown processor, the `include_relative`
+# Liquid tag) that GitHub Pages' own Jekyll build already provides with no extra plugins, so a
+# plain `jekyll` gem here produces the same markup.
+gem "jekyll", "~> 4.3"
+
+# `jekyll serve` needs a bundled web server on Ruby >= 3.0 (webrick moved out of the Ruby stdlib
+# in 3.0); listing it explicitly keeps `bundle exec jekyll serve` working across Ruby versions.
+gem "webrick"
