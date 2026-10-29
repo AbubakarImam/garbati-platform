@@ -2,6 +2,8 @@
 
 The hub for GARBATI, an open-source core banking platform for Sharia-compliant microfinance. This repo holds no service code. It holds the map, the rules, the task board and the notes that keep every service and every agent in sync.
 
+**New here? Start at [abubakarimam.github.io/garbati-platform](https://abubakarimam.github.io/garbati-platform/)** — a short, designed overview of what this is, the real architecture, and how to run it yourself, before diving into the files below.
+
 | File | What it is |
 |---|---|
 | `ARCHITECTURE.md` | Who owns which truth, who may call whom, the decisions log. **The source of truth.** |
