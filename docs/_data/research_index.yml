@@ -13,6 +13,8 @@
   title: "Dual-control / maker-checker / k-of-N approval patterns, for GARBATI joint accounts"
 - filename: "lien-auto-sweep-patterns.md"
   title: "Lien / auto-sweep patterns for unrecoverable reversals (T-021)"
+- filename: "modern-treasury-gap-analysis.md"
+  title: "Modern Treasury gap analysis — what GARBATI has, lacks, or differs on by design (T-055)"
 - filename: "ndpa-encryption-requirement.md"
   title: "Does Nigerian law actually require encrypting BVN/NIN at rest?"
 - filename: "nigeria-hosting-options.md"
