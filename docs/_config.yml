@@ -1,0 +1,33 @@
+# Jekyll config for GitHub Pages. Build source: this `docs/` folder on `main`.
+# markdown: kramdown is GitHub Pages' default processor - listed explicitly so a local
+# `bundle exec jekyll build` matches the Pages build instead of relying on jekyll's own default.
+title: GARBATI
+description: >-
+  Open-source core banking for Sharia-compliant microfinance - real services,
+  a real double-entry ledger, real research, not a mockup.
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  hard_wrap: false
+
+# Project site (not a custom domain): GitHub Pages serves this at
+# https://abubakarimam.github.io/garbati-platform/, so every internal link must carry this
+# baseurl. Pages itself ignores `url`/`baseurl` in _config.yml for its own build step only if a
+# CNAME file is present (there isn't one here); without a CNAME this is exactly the path Pages
+# serves the site under, so it needs to be set explicitly, not left to a default.
+url: "https://abubakarimam.github.io"
+baseurl: "/garbati-platform"
+
+permalink: pretty
+
+# Everything this build needs to read from one directory above `docs/` (the real source docs)
+# is reached via `{% include_relative %}` inside the pages themselves, not via this list.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - node_modules/
+  - README.md
+
+plugins: []

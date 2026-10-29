@@ -1,0 +1,8 @@
+# Jekyll build output and local bundler state for docs/ (T-051) - never commit the built site,
+# only its source. GitHub Pages runs its own build from docs/ on push; this is just what a local
+# `bundle exec jekyll build`/`serve` leaves behind.
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+docs/.sass-cache/
+docs/vendor/

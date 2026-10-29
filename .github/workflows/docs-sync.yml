@@ -1,0 +1,55 @@
+# Keeps docs/_includes/architecture.md, docs/_includes/deployment-runbook.md and
+# docs/_data/research_index.yml in sync with the real ARCHITECTURE.md, DEPLOYMENT-RUNBOOK.md
+# and research/*.md files - automatically, on every push to main that touches any of them.
+#
+# Why this exists at all instead of a plain Jekyll tag (see scripts/sync_docs.py's own
+# docstring for the full story): Jekyll's `include`/`include_relative` tags both refuse any
+# file path containing ".." (a deliberate, long-standing path-traversal guard, confirmed
+# present in both the jekyll gem installed locally for this task and in GitHub Pages' own
+# pinned Jekyll 3.10.0), so there is no way to point a page at ARCHITECTURE.md or
+# DEPLOYMENT-RUNBOOK.md one directory above docs/ directly. And there is no Jekyll tag at all
+# for listing an external directory's contents, which the research index page needs.
+#
+# This keeps the owner's actual requirement intact end to end - edit the real file, push, and
+# the live site updates with no separate manual step - just with one extra hop (this Action)
+# ahead of GitHub Pages' own automatic Jekyll build, rather than Jekyll reading the real files
+# directly at its own build time.
+#
+# Requires this repo's Settings -> Actions -> General -> Workflow permissions to be set to
+# "Read and write permissions" so the default GITHUB_TOKEN can push the regenerated files back
+# to main - noted as a manual step in the T-051 PR description, same as enabling Pages itself.
+name: docs-sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ARCHITECTURE.md"
+      - "DEPLOYMENT-RUNBOOK.md"
+      - "research/**"
+      - "scripts/sync_docs.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Regenerate docs/_includes/*.md and docs/_data/research_index.yml
+        run: python3 scripts/sync_docs.py
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- docs/_includes/architecture.md docs/_includes/deployment-runbook.md docs/_data/research_index.yml; then
+            echo "No change - nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/_includes/architecture.md docs/_includes/deployment-runbook.md docs/_data/research_index.yml
+          git commit -m "Sync docs site mirrors (ARCHITECTURE.md / DEPLOYMENT-RUNBOOK.md / research/ changed)"
+          git push
