@@ -33,3 +33,5 @@
   title: "Research: how do real Islamic-finance core-banking systems make Sharia product rules *configurable* per adopting institution?"
 - filename: "staff-ops-identity-patterns.md"
   title: "Research: staff/ops identity and RBAC patterns, for GARBATI's ops console"
+- filename: "teller-till-vault-cash-operations.md"
+  title: "Teller till/vault cash operations in real banking, and whether GARBATI's existing architecture could model it (T-056)"
