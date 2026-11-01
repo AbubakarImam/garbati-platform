@@ -25,6 +25,8 @@
   title: "Nigerian regulatory requirements for a microfinance core system"
 - filename: "oss-core-banking-readiness-gaps.md"
   title: "Research: what does GARBATI need to be a credible, standard open-source core-banking platform?"
+- filename: "real-corebanking-payload-gap-analysis.md"
+  title: "Triangulating a real production transfer payload's six gaps against two other named core-banking platforms (T-058)"
 - filename: "reconciliation-nibss-integration-patterns.md"
   title: "Reconciliation and NIBSS-integration patterns in real banking (T-054)"
 - filename: "reversal-authority-patterns.md"
