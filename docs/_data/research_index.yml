@@ -15,6 +15,8 @@
   title: "Lien / auto-sweep patterns for unrecoverable reversals (T-021)"
 - filename: "modern-treasury-gap-analysis.md"
   title: "Modern Treasury gap analysis — what GARBATI has, lacks, or differs on by design (T-055)"
+- filename: "multi-charge-transaction-modeling.md"
+  title: "How real banking/fintech platforms model stacked, compounding transaction charges, and what this means for GARBATI (T-057)"
 - filename: "ndpa-encryption-requirement.md"
   title: "Does Nigerian law actually require encrypting BVN/NIN at rest?"
 - filename: "nigeria-hosting-options.md"
