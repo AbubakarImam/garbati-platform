@@ -5,6 +5,8 @@
 # Jekyll enumerating the directory directly.
 - filename: "architecture-patterns-p1-p6.md"
   title: "Research: Industry patterns behind P-1 to P-6"
+- filename: "fineract-core-functionality-gap-analysis.md"
+  title: "Full gap analysis: GARBATI against Apache Fineract's core functionality (T-059)"
 - filename: "grpc-vs-rest-inter-service.md"
   title: "gRPC vs plain HTTP/JSON for GARBATI's inter-service calls"
 - filename: "identityapi-design-review.md"
