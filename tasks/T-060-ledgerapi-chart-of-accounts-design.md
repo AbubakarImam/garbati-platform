@@ -1,5 +1,15 @@
 # T-060: LedgerApi chart-of-accounts design (D-30)
 
+**Status: done, 1 Nov 2026.** Ratified by the owner — full chart of accounts, design first,
+backfill existing accounts rather than leaving them null. Written into `LedgerApi/docs/DESIGN.md`
+as decision #48 (commit `bb70a2c`): a new `gl_accounts` table and a nullable `gl_account_id` FK on
+`accounts`, seeded with five flat top-level accounts (`1000` Cash and Cash Equivalents / Asset,
+`2000` Customer Deposits / Liability, `2100` Tax Payable / Liability, `4000` Fee Income / Income,
+`5000` Expense / Expense), backfilling decision #25's funding accounts to `1000`, decision #46's
+fee-income accounts to `4000` and tax-payable accounts to `2100`, and every existing
+`AccountClass = Customer` row to `2000`. Next step per this task's own process (step 3): a separate
+build task, not yet written.
+
 Owner: coordinator + you. This is a design task — it produces (or revises) a section of
 `LedgerApi/docs/DESIGN.md` and a new decision-log entry, the same way T-006/T-009/T-010/T-027 designed
 Identity v2, ProductApi, OrchestratorApi, and StaffIdentityApi before any of them were built. **No code
