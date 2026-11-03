@@ -1,5 +1,10 @@
 # T-063: LedgerApi real-payload gaps design (D-31)
 
+**Status: done, ratified 3 Nov 2026.** Written as LedgerApi decisions #49-#52
+(`LedgerApi/docs/DESIGN.md`, commit `f3aa1ff`), `Garbati.OrchestratorApi` decision #11 (commit
+`e6ed2a5`), and the decision-#13 citation fix in `Garbati.IdentityApi/docs/DESIGN.md` (commit
+`2470b05`). Next step per this task's own process (step 3): a separate build task, not yet written.
+
 Owner: coordinator + you. Design task — produces decisions-log entries in `LedgerApi/docs/DESIGN.md`
 and a small forwarding change spec for `OrchestratorApi`. **No code gets written from this task
 directly** — once ratified, a separate build task goes to a builder, the same two-step pattern T-060
