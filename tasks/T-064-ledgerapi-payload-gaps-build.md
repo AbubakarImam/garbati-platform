@@ -1,5 +1,10 @@
 # T-064: LedgerApi real-payload gaps build (decisions #49-#52, T-063)
 
+**Status: done, merged 3 Nov 2026.** PR #30, CI green, QA approved with one should-fix (a one-line
+addendum to decision #49 documenting the rollback-not-Failed-row choice on a `value_date` mismatch),
+fixed before merge. The merge-triggered deploy failed, but for a reason unrelated to this PR's code —
+see `garbati-platform/TASKS.md` Section C: the Azure subscription itself is disabled.
+
 Owner: builder. Implements the design ratified in T-063 and written into `LedgerApi/docs/DESIGN.md`
 decisions #49-#52 (`main` @ `f3aa1ff`). Read those four decisions in full before starting — they are
 the spec. This is LedgerApi's half only. A separate task (T-065) will cover the `Garbati.OrchestratorApi`
