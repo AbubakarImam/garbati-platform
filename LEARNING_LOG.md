@@ -13,7 +13,7 @@ One entry per merged feature. You should be able to answer these in an interview
 5. Q / A
 **One thing that nearly went wrong:** a trade-off or bug and how it was handled.
 
-### 2026-11-03: Real-payload gaps build — value date, branch, channel, decision-id columns (T-064, LedgerApi PR #30, merged); an unrelated Azure outage found along the way
+### 2026-11-03: Real-payload gaps build — value date, branch, channel, decision-id columns (T-064/T-065, LedgerApi PR #30 + OrchestratorApi PR #7, both merged — D-31 fully built); an unrelated Azure outage found along the way
 **In plain words:** The design from earlier the same day became real code: four new, optional pieces of information can now travel with a transfer or chain — an effective date, a branch, a channel, and a reference back to who approved it. None of them change how money moves, which made one specific thing the most important to get right: none of the four can be allowed to affect whether a *retry* of the same transfer is treated as the same transfer or a brand-new one. While confirming the merge actually went live, a second, completely unrelated problem turned up: the real Azure account the whole platform runs on had been disabled, and every live service was already down.
 
 **Five interview questions:**
