@@ -7,6 +7,8 @@
   title: "Research: Industry patterns behind P-1 to P-6"
 - filename: "fineract-core-functionality-gap-analysis.md"
   title: "Full gap analysis: GARBATI against Apache Fineract's core functionality (T-059)"
+- filename: "fineract-standing-instructions-detail.md"
+  title: "Fineract's real standing-instructions feature set, in depth (deepening T-059 Area 7)"
 - filename: "group-lending-joint-liability-patterns.md"
   title: "Group lending / joint-liability patterns, conventional and Islamic (T-066)"
 - filename: "grpc-vs-rest-inter-service.md"
