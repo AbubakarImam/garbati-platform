@@ -315,9 +315,69 @@ services:
     ports:
       - "5400:8080"
 
+  # ---------------------------------------------------------------------------------------------------
+  # Garbati.ScheduleApi (completing T-071's own local-integration gap, not part of T-038's original 5):
+  # calls OrchestratorApi (POST /v1/transfers, per scheduled run) and, narrowly, LedgerApi directly
+  # (GET .../balance, only for AllowPartialTransfer - D-33's one deliberate exception). Waits on both.
+  # ---------------------------------------------------------------------------------------------------
+  scheduleapi-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: scheduleapi
+    ports:
+      - "5438:5432"
+    volumes:
+      - scheduleapi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  scheduleapi-migrator:
+    build:
+      context: ../Garbati.ScheduleApi
+      target: migrator
+    depends_on:
+      scheduleapi-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__ScheduleDb: "Host=scheduleapi-db;Port=5432;Database=scheduleapi;Username=postgres;Password=postgres"
+    restart: "no"
+
+  scheduleapi:
+    build:
+      context: ../Garbati.ScheduleApi
+      target: final
+    depends_on:
+      scheduleapi-migrator:
+        condition: service_completed_successfully
+      orchestratorapi-wait:
+        condition: service_completed_successfully
+      ledgerapi-wait:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__ScheduleDb: "Host=scheduleapi-db;Port=5432;Database=scheduleapi;Username=postgres;Password=postgres"
+      DownstreamServices__OrchestratorApi__BaseUrl: "http://orchestratorapi:8080"
+      DownstreamServices__LedgerApi__BaseUrl: "http://ledgerapi:8080"
+    volumes:
+      - ../Garbati.ScheduleApi/src/Garbati.ScheduleApi/appsettings.Development.json:/app/appsettings.Development.json:ro
+    ports:
+      - "5450:8080"
+
+  scheduleapi-wait:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      - scheduleapi
+    command: >
+      sh -c "until curl -sf http://scheduleapi:8080/health/ready; do echo 'waiting for scheduleapi...'; sleep 2; done"
+
 volumes:
   ledgerapi-db-data:
   identityapi-db-data:
   orchestratorapi-db-data:
   staffidentityapi-db-data:
   opsapi-db-data:
+  scheduleapi-db-data:

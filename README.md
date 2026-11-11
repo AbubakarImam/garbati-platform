@@ -19,7 +19,7 @@ The hub for GARBATI, an open-source core banking platform for Sharia-compliant m
 | `templates/` | CI workflow and PR template to copy into each service repo. |
 | `docker-compose.yml` | Runs every service, its own database and migrations together with one command. See below. |
 
-Services live in their own repos: `LedgerApi`, `Garbati.IdentityApi`, `Garbati.OrchestratorApi`, `Garbati.StaffIdentityApi`, `Garbati.OpsApi`.
+Services live in their own repos: `LedgerApi`, `Garbati.IdentityApi`, `Garbati.OrchestratorApi`, `Garbati.StaffIdentityApi`, `Garbati.OpsApi`, `Garbati.ProductApi`, `Garbati.ScheduleApi`. `docker-compose.yml` currently wires up the first five plus `Garbati.ScheduleApi` (`Garbati.ProductApi` is deployed to Azure but not yet part of this local stack - a real, pre-existing gap, not a deliberate omission).
 
 ## Running the full stack locally
 
@@ -33,6 +33,7 @@ some-parent-directory/
   Garbati.OrchestratorApi/
   Garbati.StaffIdentityApi/
   Garbati.OpsApi/
+  Garbati.ScheduleApi/
 ```
 
 Then, from `garbati-platform/`:
@@ -41,7 +42,7 @@ Then, from `garbati-platform/`:
 docker compose up --build
 ```
 
-This builds all five services' images, starts five PostgreSQL databases, runs each service's EF Core migrations (a one-shot `*-migrator` container per service that applies pending migrations and exits), then starts all five APIs wired to call each other over the compose network - no manual API-key setup or `localhost` port juggling needed. First build takes a while (five separate .NET builds); subsequent `docker compose up` runs reuse the cached images.
+This builds all six services' images, starts six PostgreSQL databases, runs each service's EF Core migrations (a one-shot `*-migrator` container per service that applies pending migrations and exits), then starts all six APIs wired to call each other over the compose network - no manual API-key setup or `localhost` port juggling needed. First build takes a while (six separate .NET builds); subsequent `docker compose up` runs reuse the cached images.
 
 Once it's up:
 
@@ -52,6 +53,7 @@ Once it's up:
 | LedgerApi | `http://localhost:5200` |
 | Garbati.StaffIdentityApi | `http://localhost:5300` |
 | Garbati.OpsApi | `http://localhost:5400` |
+| Garbati.ScheduleApi | `http://localhost:5450` |
 
 (OrchestratorApi is mapped to host port 5001, not 5000, because macOS's AirPlay Receiver already listens on 5000 on a stock Mac.)
 
